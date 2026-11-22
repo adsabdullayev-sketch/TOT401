@@ -1,0 +1,3309 @@
+<!doctype html>
+<html lang="az">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Qala Qapıları — İnteraktiv Labirint və Bilik Oyunu</title>
+    <meta
+      name="description"
+      content="Orta əsr Azərbaycan qala memarlığından ilhamlanmış, müəllimlər üçün interaktiv labirint və bilik oyunu."
+    />
+    <meta property="og:title" content="Qala Qapıları" />
+    <meta
+      property="og:description"
+      content="Orta əsr Azərbaycan qala memarlığından ilhamlanmış, müəllimlər üçün interaktiv labirint və bilik oyunu."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Klassik və oxunaqlı serif şriftlər (Azərbaycan əlifbası: ə, ğ, ı, ö, ü, ç, ş tam dəstəklənir).
+         İnternet olmadıqda avtomatik olaraq sistemin klassik serif şriftlərinə keçir. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* =========================================================================
+         1. RƏNG PALİTRASI VƏ ƏSAS DƏYİŞƏNLƏR
+         60% Tünd qala daşı | 30% Daş səthlər və perqament | 10% Qızılı və mum qırmızısı
+         ========================================================================= */
+      :root {
+        --bg-stone: #151412;
+        --bg-stone-deep: #0e0d0b;
+        --surface-stone: #211e1a;
+        --surface-stone-hover: #2b2722;
+        --border-stone: rgba(201, 155, 60, 0.24);
+        --border-subtle: rgba(235, 220, 188, 0.12);
+
+        --gold: #c99b3c;
+        --gold-bright: #e6c36e;
+        --gold-muted: #98742b;
+
+        --parchment-light: #f4e6c4;
+        --parchment-mid: #e6d09c;
+        --parchment-edge: #c9ab6d;
+        --ink-dark: #251a11;
+        --ink-muted: #5a4632;
+
+        --wax-red: #9f1f24;
+        --wax-bright: #be2b30;
+        --wax-dark: #681014;
+
+        --emerald: #246a49;
+        --emerald-soft: rgba(36, 106, 73, 0.14);
+        --crimson-soft: rgba(159, 31, 36, 0.13);
+
+        --text-light: #efe5d0;
+        --text-muted: #b5a78e;
+
+        --font-display: 'EB Garamond', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+        --font-body: 'Noto Serif', Georgia, 'Times New Roman', serif;
+
+        --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      /* =========================================================================
+         2. ÜMUMİ SIFIRLAMA VƏ TİPOQRAFİYA
+         ========================================================================= */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        background-color: var(--bg-stone);
+        color: var(--text-light);
+        font-family: var(--font-body);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      /* Qala daşının yüngül atmosferik fonu */
+      body {
+        background-image:
+          radial-gradient(ellipse at 50% 0%, rgba(201, 155, 60, 0.08) 0%, transparent 58%),
+          radial-gradient(circle at 18% 85%, rgba(159, 31, 36, 0.06) 0%, transparent 45%),
+          linear-gradient(180deg, #191714 0%, #12110f 100%);
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-family: var(--font-display);
+        font-weight: 600;
+        letter-spacing: 0.015em;
+        text-wrap: balance;
+      }
+
+      button {
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: inherit;
+        transition:
+          transform 160ms var(--ease-smooth),
+          background-color 160ms var(--ease-smooth),
+          border-color 160ms var(--ease-smooth),
+          color 160ms var(--ease-smooth),
+          opacity 160ms var(--ease-smooth),
+          box-shadow 160ms var(--ease-smooth);
+      }
+
+      button:focus-visible {
+        outline: 2px solid var(--gold-bright);
+        outline-offset: 2px;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.42;
+      }
+
+      .tabular {
+        font-variant-numeric: tabular-nums;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* =========================================================================
+         3. EKRANLARIN ÜMUMİ KONTEYNERİ
+         ========================================================================= */
+      .screen {
+        width: 100%;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      /* =========================================================================
+         4. BAŞLANĞIC EKRANI (START SCREEN)
+         ========================================================================= */
+      .start-card {
+        width: 100%;
+        max-width: 780px;
+        background: linear-gradient(180deg, #221f1b 0%, #1a1815 100%);
+        border: 1px solid var(--border-stone);
+        border-radius: 14px;
+        padding: clamp(24px, 4vw, 44px);
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Yuxarı və aşağı qızılı memarlıq haşiyəsi */
+      .start-card::before,
+      .start-card::after {
+        content: '';
+        position: absolute;
+        left: 28px;
+        right: 28px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        opacity: 0.55;
+      }
+      .start-card::before {
+        top: 12px;
+      }
+      .start-card::after {
+        bottom: 12px;
+      }
+
+      .crest-wrap {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 14px;
+      }
+
+      .title-main {
+        text-align: center;
+        font-size: clamp(2.35rem, 5vw, 3.6rem);
+        color: var(--gold-bright);
+        line-height: 1.1;
+        margin-bottom: 10px;
+        text-shadow: 0 2px 18px rgba(201, 155, 60, 0.22);
+      }
+
+      .subtitle-main {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: clamp(0.98rem, 1.5vw, 1.12rem);
+        max-width: 56ch;
+        margin: 0 auto 28px;
+      }
+
+      .section-label {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .section-label h2 {
+        font-size: 1.35rem;
+        color: var(--text-light);
+      }
+
+      .section-hint {
+        font-size: 0.88rem;
+        color: var(--text-muted);
+      }
+
+      /* Fənn seçimi toru */
+      .subject-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+        gap: 14px;
+        margin-bottom: 28px;
+      }
+
+      .subject-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 18px;
+        min-height: 64px;
+        text-align: left;
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid rgba(235, 220, 188, 0.15);
+        border-radius: 10px;
+      }
+
+      .subject-btn:hover {
+        background: var(--surface-stone-hover);
+        border-color: rgba(201, 155, 60, 0.5);
+      }
+
+      .subject-btn.selected {
+        background: rgba(201, 155, 60, 0.14);
+        border-color: var(--gold-bright);
+        box-shadow: inset 0 0 0 1px rgba(230, 195, 110, 0.25);
+      }
+
+      .subject-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .subject-name {
+        font-family: var(--font-display);
+        font-size: 1.32rem;
+        font-weight: 600;
+        color: var(--text-light);
+        line-height: 1.2;
+      }
+
+      .subject-count {
+        font-size: 0.84rem;
+        color: var(--text-muted);
+      }
+
+      .subject-check {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        border: 1.5px solid rgba(235, 220, 188, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: transparent;
+      }
+
+      .subject-btn.selected .subject-check {
+        background: var(--gold);
+        border-color: var(--gold-bright);
+        color: #18130c;
+      }
+
+      /* Qısa qaydalar xətti */
+      .rules-strip {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px 20px;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-bottom: 26px;
+        text-align: center;
+      }
+
+      .rules-strip span {
+        white-space: nowrap;
+      }
+
+      .rules-sep {
+        color: var(--gold-muted);
+      }
+
+      /* Əsas fəaliyyət düyməsi */
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 52px;
+        padding: 12px 36px;
+        border-radius: 9px;
+        font-family: var(--font-display);
+        font-size: 1.38rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        color: #1a1309;
+        background: linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 100%);
+        box-shadow: 0 6px 22px rgba(201, 155, 60, 0.28);
+        white-space: nowrap;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 28px rgba(201, 155, 60, 0.38);
+      }
+
+      .btn-primary:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      .start-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .start-validation {
+        min-height: 20px;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+      }
+
+      /* =========================================================================
+         5. OYUN EKRANI VƏ YUXARI PANEL (HUD)
+         ========================================================================= */
+      #game-screen {
+        justify-content: flex-start;
+        padding: 0;
+        min-height: 100dvh;
+      }
+
+      .hud-bar {
+        width: 100%;
+        background: rgba(20, 18, 15, 0.94);
+        border-bottom: 1px solid var(--border-stone);
+        padding: 10px clamp(14px, 3vw, 32px);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-shrink: 0;
+      }
+
+      .hud-brand {
+        font-family: var(--font-display);
+        font-size: clamp(1.15rem, 2vw, 1.45rem);
+        font-weight: 700;
+        color: var(--gold-bright);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .hud-metrics {
+        display: flex;
+        align-items: center;
+        gap: clamp(14px, 3vw, 34px);
+        flex-wrap: nowrap;
+      }
+
+      .hud-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+      }
+
+      .hud-label {
+        font-size: 0.86rem;
+        color: var(--text-muted);
+      }
+
+      .hud-value {
+        font-family: var(--font-display);
+        font-size: clamp(1.15rem, 1.8vw, 1.38rem);
+        font-weight: 700;
+        color: var(--text-light);
+      }
+
+      /* Məşəl ikonaları */
+      .torches-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .torch-slot {
+        width: 26px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 300ms ease, transform 300ms ease;
+      }
+
+      .torch-slot.out {
+        opacity: 0.34;
+        filter: grayscale(0.85);
+      }
+
+      .torch-slot.extinguish-anim {
+        animation: torchOut 520ms ease-out;
+      }
+
+      @keyframes torchOut {
+        0% {
+          transform: scale(1.25);
+        }
+        40% {
+          transform: scale(0.85) rotate(-8deg);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .torch-flame {
+        transform-origin: 50% 70%;
+        animation: flameFlicker 1.6s ease-in-out infinite alternate;
+      }
+
+      @keyframes flameFlicker {
+        0% {
+          transform: scale(0.95) rotate(-2deg);
+          opacity: 0.92;
+        }
+        50% {
+          transform: scale(1.06) rotate(2deg);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(0.98) rotate(-1deg);
+          opacity: 0.95;
+        }
+      }
+
+      .hud-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+
+      .icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-width: 40px;
+        min-height: 40px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-light);
+        font-size: 0.88rem;
+        white-space: nowrap;
+      }
+
+      .icon-btn:hover {
+        border-color: var(--gold);
+        background: var(--surface-stone-hover);
+      }
+
+      /* =========================================================================
+         6. LABİRİNT MEYDANI VƏ İDARƏETMƏ PANELİ
+         ========================================================================= */
+      .play-layout {
+        flex: 1;
+        width: 100%;
+        max-width: 1380px;
+        margin: 0 auto;
+        padding: clamp(12px, 2vw, 24px);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 230px;
+        gap: clamp(16px, 2.4vw, 28px);
+        align-items: center;
+      }
+
+      .maze-stage {
+        position: relative;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .maze-frame {
+        width: 100%;
+        max-width: min(100%, 1040px);
+        aspect-ratio: 840 / 640;
+        max-height: calc(100dvh - 118px);
+        background: var(--bg-stone-deep);
+        border: 2px solid var(--border-stone);
+        border-radius: 12px;
+        box-shadow:
+          0 24px 60px rgba(0, 0, 0, 0.65),
+          inset 0 0 0 1px rgba(230, 195, 110, 0.08);
+        overflow: hidden;
+        position: relative;
+        touch-action: none;
+        user-select: none;
+      }
+
+      .maze-frame.bump {
+        animation: wallBump 160ms ease-out;
+      }
+
+      @keyframes wallBump {
+        0% {
+          transform: translateX(0);
+        }
+        35% {
+          transform: translateX(-3px);
+        }
+        70% {
+          transform: translateX(3px);
+        }
+        100% {
+          transform: translateX(0);
+        }
+      }
+
+      #maze-svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      /* Oyunçu və işıq hamar hərəkəti */
+      #player-group,
+      #torch-glow-group {
+        transition: transform 165ms var(--ease-smooth);
+      }
+
+      /* Qapı açılma animasiyası */
+      .gate-opening {
+        animation: gateOpenFade 520ms var(--ease-smooth) forwards;
+      }
+
+      @keyframes gateOpenFade {
+        0% {
+          opacity: 1;
+          filter: brightness(1.4);
+        }
+        45% {
+          opacity: 0.9;
+          filter: brightness(2);
+        }
+        100% {
+          opacity: 0;
+          filter: brightness(1);
+        }
+      }
+
+      /* Qısa vəziyyət xəbərdarlığı (labirintin altında) */
+      .status-note {
+        margin-top: 10px;
+        min-height: 24px;
+        font-size: 0.95rem;
+        color: var(--gold-bright);
+        text-align: center;
+        opacity: 0;
+        transition: opacity 200ms ease;
+      }
+
+      .status-note.visible {
+        opacity: 1;
+      }
+
+      /* Yan panel: D-pad və qısa məlumat */
+      .controls-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        padding: 20px 16px;
+        background: rgba(33, 30, 26, 0.72);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+      }
+
+      .controls-heading {
+        font-family: var(--font-display);
+        font-size: 1.15rem;
+        color: var(--gold-bright);
+        text-align: center;
+      }
+
+      .dpad {
+        display: grid;
+        grid-template-columns: repeat(3, 54px);
+        grid-template-rows: repeat(3, 54px);
+        gap: 8px;
+      }
+
+      .dpad-btn {
+        width: 54px;
+        height: 54px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #2d2923 0%, #201d19 100%);
+        border: 1px solid rgba(201, 155, 60, 0.34);
+        color: var(--gold-bright);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+      }
+
+      .dpad-btn:hover {
+        background: #38332b;
+        border-color: var(--gold-bright);
+      }
+
+      .dpad-btn:active {
+        transform: scale(0.93);
+        background: rgba(201, 155, 60, 0.22);
+      }
+
+      .dpad-up {
+        grid-column: 2;
+        grid-row: 1;
+      }
+      .dpad-left {
+        grid-column: 1;
+        grid-row: 2;
+      }
+      .dpad-center {
+        grid-column: 2;
+        grid-row: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--gold-muted);
+        opacity: 0.65;
+      }
+      .dpad-right {
+        grid-column: 3;
+        grid-row: 2;
+      }
+      .dpad-down {
+        grid-column: 2;
+        grid-row: 3;
+      }
+
+      .controls-legend {
+        width: 100%;
+        border-top: 1px solid var(--border-subtle);
+        padding-top: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .legend-swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+
+      .key-hint {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        text-align: center;
+        line-height: 1.45;
+      }
+
+      /* =========================================================================
+         7. MÖHÜRLÜ PERQAMENT MƏKTUB MODALI
+         ========================================================================= */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(9, 8, 6, 0.82);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        z-index: 50;
+        animation: fadeIn 200ms ease-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .scroll-wrapper {
+        width: 100%;
+        max-width: 680px;
+        max-height: 92dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+      }
+
+      /* Perqamentin yuxarı və aşağı taxta-qızılı rulon çubuqları */
+      .scroll-rod {
+        width: 104%;
+        height: 22px;
+        border-radius: 11px;
+        background: linear-gradient(180deg, #7c5b28 0%, #c99b3c 35%, #5c4018 100%);
+        border: 1px solid #3c280e;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+        position: relative;
+        z-index: 2;
+        flex-shrink: 0;
+      }
+
+      .scroll-rod::before,
+      .scroll-rod::after {
+        content: '';
+        position: absolute;
+        top: -3px;
+        width: 14px;
+        height: 26px;
+        border-radius: 4px;
+        background: linear-gradient(180deg, var(--gold-bright), var(--gold-muted));
+        border: 1px solid #3c280e;
+      }
+      .scroll-rod::before {
+        left: 6px;
+      }
+      .scroll-rod::after {
+        right: 6px;
+      }
+
+      /* Perqament vərəqi */
+      .parchment-body {
+        width: 96%;
+        background:
+          radial-gradient(ellipse at 50% 0%, rgba(255, 251, 240, 0.55) 0%, transparent 65%),
+          radial-gradient(ellipse at 50% 100%, rgba(168, 128, 62, 0.28) 0%, transparent 60%),
+          linear-gradient(180deg, var(--parchment-light) 0%, var(--parchment-mid) 100%);
+        color: var(--ink-dark);
+        border-left: 3px solid var(--parchment-edge);
+        border-right: 3px solid var(--parchment-edge);
+        box-shadow:
+          inset 0 14px 20px -12px rgba(72, 46, 16, 0.45),
+          inset 0 -14px 20px -12px rgba(72, 46, 16, 0.45),
+          0 18px 46px rgba(0, 0, 0, 0.65);
+        padding: clamp(22px, 3.5vw, 34px) clamp(20px, 4vw, 40px);
+        overflow-y: auto;
+        transform-origin: top center;
+      }
+
+      .parchment-body.unrolling {
+        animation: scrollUnroll 420ms var(--ease-smooth);
+      }
+
+      @keyframes scrollUnroll {
+        0% {
+          transform: scaleY(0.28);
+          opacity: 0.4;
+        }
+        100% {
+          transform: scaleY(1);
+          opacity: 1;
+        }
+      }
+
+      /* 1-ci mərhələ: Möhürlü bağlı məktub */
+      .sealed-view {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 14px 0 10px;
+        gap: 14px;
+      }
+
+      .sealed-meta {
+        font-size: 0.95rem;
+        color: var(--ink-muted);
+        letter-spacing: 0.03em;
+      }
+
+      .sealed-title {
+        font-size: clamp(1.65rem, 3vw, 2.15rem);
+        color: var(--ink-dark);
+      }
+
+      .sealed-desc {
+        font-size: 0.98rem;
+        color: var(--ink-muted);
+        max-width: 42ch;
+      }
+
+      .wax-seal-btn {
+        position: relative;
+        width: 126px;
+        height: 126px;
+        margin: 8px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+      }
+
+      .wax-seal-btn:hover {
+        transform: scale(1.06);
+      }
+
+      .wax-seal-btn:active {
+        transform: scale(0.96);
+      }
+
+      .wax-half {
+        transition: transform 340ms var(--ease-smooth), opacity 340ms ease;
+      }
+
+      .wax-seal-btn.cracking .wax-left {
+        transform: translate(-22px, -6px) rotate(-18deg);
+        opacity: 0;
+      }
+
+      .wax-seal-btn.cracking .wax-right {
+        transform: translate(22px, 8px) rotate(18deg);
+        opacity: 0;
+      }
+
+      .seal-prompt {
+        font-size: 0.9rem;
+        color: var(--wax-red);
+        font-weight: 600;
+      }
+
+      /* 2-ci mərhələ: Açılmış sual */
+      .question-view {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .question-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 0.92rem;
+        color: var(--ink-muted);
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(90, 70, 50, 0.25);
+      }
+
+      .question-subject {
+        font-weight: 700;
+        color: var(--wax-red);
+      }
+
+      .question-text {
+        font-family: var(--font-body);
+        font-size: clamp(1.12rem, 2.2vw, 1.38rem);
+        font-weight: 600;
+        line-height: 1.5;
+        color: var(--ink-dark);
+      }
+
+      .options-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .option-btn {
+        width: 100%;
+        min-height: 52px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1.5px solid rgba(90, 70, 50, 0.34);
+        background: rgba(255, 250, 238, 0.62);
+        color: var(--ink-dark);
+        text-align: left;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        font-size: clamp(0.98rem, 1.6vw, 1.1rem);
+        line-height: 1.45;
+      }
+
+      .option-btn:hover:not(:disabled) {
+        background: rgba(255, 252, 244, 0.95);
+        border-color: var(--gold-muted);
+        transform: translateX(2px);
+      }
+
+      .option-key {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: 1px solid rgba(90, 70, 50, 0.42);
+        background: rgba(201, 155, 60, 0.16);
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--ink-dark);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .option-btn.correct {
+        background: var(--emerald-soft);
+        border-color: var(--emerald);
+        color: #133b28;
+        opacity: 1;
+      }
+
+      .option-btn.correct .option-key {
+        background: var(--emerald);
+        border-color: var(--emerald);
+        color: #ffffff;
+      }
+
+      .option-btn.wrong {
+        background: var(--crimson-soft);
+        border-color: var(--wax-red);
+        color: #5c1014;
+        opacity: 1;
+      }
+
+      .option-btn.wrong .option-key {
+        background: var(--wax-red);
+        border-color: var(--wax-red);
+        color: #ffffff;
+      }
+
+      .option-btn.dimmed {
+        opacity: 0.56;
+      }
+
+      /* İzah və rəy bölməsi */
+      .feedback-box {
+        padding-top: 14px;
+        border-top: 1px solid rgba(90, 70, 50, 0.28);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .feedback-status {
+        font-family: var(--font-display);
+        font-size: 1.32rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .feedback-status.is-correct {
+        color: var(--emerald);
+      }
+
+      .feedback-status.is-wrong {
+        color: var(--wax-red);
+      }
+
+      .feedback-explanation {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        color: var(--ink-dark);
+        line-height: 1.55;
+      }
+
+      .feedback-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 4px;
+      }
+
+      .btn-ink {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 46px;
+        padding: 10px 26px;
+        border-radius: 8px;
+        font-family: var(--font-display);
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--parchment-light);
+        background: linear-gradient(180deg, #3a2a1c 0%, #241910 100%);
+        border: 1px solid #1a120b;
+        white-space: nowrap;
+      }
+
+      .btn-ink:hover {
+        background: linear-gradient(180deg, #4b3725 0%, #2f2115 100%);
+      }
+
+      .btn-ink.victory-gate {
+        background: linear-gradient(180deg, #2b7a55 0%, #1d563b 100%);
+        border-color: #16442e;
+      }
+
+      /* =========================================================================
+         8. NƏTİCƏ EKRANI (RESULT SCREEN)
+         ========================================================================= */
+      .result-card {
+        width: 100%;
+        max-width: 600px;
+        background: linear-gradient(180deg, #23201c 0%, #191714 100%);
+        border: 1px solid var(--border-stone);
+        border-radius: 14px;
+        padding: clamp(28px, 4vw, 44px);
+        text-align: center;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+      }
+
+      .result-emblem {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 14px;
+      }
+
+      .result-title {
+        font-size: clamp(2.1rem, 4.5vw, 3rem);
+        margin-bottom: 8px;
+      }
+
+      .result-title.win {
+        color: var(--gold-bright);
+      }
+
+      .result-title.lose {
+        color: #df6d70;
+      }
+
+      .result-subtitle {
+        color: var(--text-muted);
+        font-size: 1.02rem;
+        margin-bottom: 26px;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        margin-bottom: 28px;
+        padding: 18px 0;
+        border-top: 1px solid var(--border-subtle);
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .stat-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .stat-label {
+        font-size: 0.88rem;
+        color: var(--text-muted);
+      }
+
+      .stat-value {
+        font-family: var(--font-display);
+        font-size: 1.9rem;
+        font-weight: 700;
+        color: var(--text-light);
+      }
+
+      /* =========================================================================
+         9. MOBİL VƏ PLANŞET UYĞUNLAŞMASI (RESPONSIVE)
+         ========================================================================= */
+      @media (max-width: 960px) {
+        .play-layout {
+          grid-template-columns: 1fr;
+          align-content: start;
+          padding: 12px;
+          gap: 12px;
+        }
+
+        .maze-frame {
+          max-height: 58dvh;
+        }
+
+        .controls-panel {
+          flex-direction: row;
+          justify-content: space-between;
+          width: 100%;
+          max-width: 560px;
+          margin: 0 auto;
+          padding: 12px 18px;
+          gap: 14px;
+        }
+
+        .controls-heading,
+        .controls-legend {
+          display: none;
+        }
+
+        .key-hint {
+          text-align: left;
+          max-width: 210px;
+        }
+      }
+
+      @media (max-width: 600px) {
+        .hud-bar {
+          padding: 8px 12px;
+          gap: 8px;
+        }
+
+        .hud-brand {
+          display: none;
+        }
+
+        .hud-label {
+          display: none;
+        }
+
+        .hud-metrics {
+          gap: 14px;
+        }
+
+        .icon-btn span {
+          display: none;
+        }
+
+        .controls-panel {
+          justify-content: center;
+          padding: 10px;
+        }
+
+        .key-hint {
+          display: none;
+        }
+
+        .dpad {
+          grid-template-columns: repeat(3, 52px);
+          grid-template-rows: repeat(3, 48px);
+          gap: 7px;
+        }
+
+        .dpad-btn {
+          width: 52px;
+          height: 48px;
+        }
+
+        .rules-strip {
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .rules-sep {
+          display: none;
+        }
+      }
+
+      /* Hərəkətə həssas istifadəçilər üçün animasiya məhdudiyyəti */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- =======================================================================
+         EKRAN 1: BAŞLANĞIC EKRANI
+         ======================================================================= -->
+    <main id="start-screen" class="screen">
+      <section class="start-card" aria-labelledby="app-title">
+        <!-- Orta əsr Azərbaycan qala tağı və səkkizguşəli ulduz emblemi (SVG) -->
+        <div class="crest-wrap" aria-hidden="true">
+          <svg width="96" height="74" viewBox="0 0 96 74" fill="none">
+            <!-- Qala bürcləri və sivri Şərq tağı -->
+            <path
+              d="M12 68V26H20V20H28V26H36V18H44V26H52V18H60V26H68V20H76V26H84V68H12Z"
+              fill="#2B2620"
+              stroke="#C99B3C"
+              stroke-width="1.6"
+            />
+            <path
+              d="M32 68V48C32 38 40 31 48 26C56 31 64 38 64 48V68H32Z"
+              fill="#141210"
+              stroke="#E6C36E"
+              stroke-width="1.8"
+            />
+            <!-- Səkkizguşəli ulduz -->
+            <polygon
+              points="48,37 51,43 57,43 52,47 54,53 48,49 42,53 44,47 39,43 45,43"
+              fill="#C99B3C"
+              opacity="0.9"
+            />
+            <line x1="6" y1="68" x2="90" y2="68" stroke="#C99B3C" stroke-width="2" />
+          </svg>
+        </div>
+
+        <h1 id="app-title" class="title-main">Qala Qapıları</h1>
+        <p class="subtitle-main">
+          Qədim qala labirintində məşəlin işığı ilə irəliləyin, hər qapıdakı möhürlü məktubun
+          sualını cavablandırın və altıncı qapıdan azadlığa çıxın.
+        </p>
+
+        <div class="section-label">
+          <h2>Fənn seçimi</h2>
+          <span class="section-hint">Bir və ya bir neçə fənn seçin</span>
+        </div>
+
+        <!-- Fənlər JavaScript tərəfindən SUAL_BANKI massivindən avtomatik yaradılır -->
+        <div id="subject-grid" class="subject-grid" role="group" aria-label="Fənn seçimi"></div>
+
+        <div class="rules-strip">
+          <span>6 möhürlü qapı</span>
+          <span class="rules-sep" aria-hidden="true">·</span>
+          <span>3 məşəl haqqı</span>
+          <span class="rules-sep" aria-hidden="true">·</span>
+          <span>Təkrarsız suallar</span>
+          <span class="rules-sep" aria-hidden="true">·</span>
+          <span>Klaviatura, düymə və sürüşdürmə</span>
+        </div>
+
+        <div class="start-actions">
+          <button id="start-btn" class="btn-primary" type="button" disabled>
+            Başla
+          </button>
+          <p id="start-validation" class="start-validation">
+            Oyuna başlamaq üçün ən azı bir fənn seçin.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <!-- =======================================================================
+         EKRAN 2: LABİRİNT OYUN EKRANI
+         ======================================================================= -->
+    <section id="game-screen" class="screen hidden" aria-label="Oyun meydanı">
+      <header class="hud-bar">
+        <div class="hud-brand">Qala Qapıları</div>
+
+        <div class="hud-metrics">
+          <!-- Məşəl sayğacı -->
+          <div class="hud-item" aria-label="Qalan məşəllər">
+            <span class="hud-label">Məşəl:</span>
+            <div id="hud-torches" class="torches-group"></div>
+          </div>
+
+          <!-- Açılmış qapı sayğacı -->
+          <div class="hud-item" aria-label="Açılmış qapılar">
+            <span class="hud-label">Qapılar:</span>
+            <span id="hud-gates" class="hud-value tabular">0/6</span>
+          </div>
+
+          <!-- Taymer -->
+          <div class="hud-item" aria-label="Keçən vaxt">
+            <span class="hud-label">Vaxt:</span>
+            <span id="hud-timer" class="hud-value tabular">00:00</span>
+          </div>
+        </div>
+
+        <div class="hud-actions">
+          <button id="mute-btn" class="icon-btn" type="button" aria-pressed="false" title="Səsi aç və ya bağla">
+            <svg id="mute-icon-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            </svg>
+            <svg id="mute-icon-off" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <line x1="23" y1="9" x2="17" y2="15"></line>
+              <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+            <span id="mute-label">Səs</span>
+          </button>
+
+          <button id="quit-btn" class="icon-btn" type="button" title="Başlanğıc ekranına qayıt">
+            <span>Çıxış</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="play-layout">
+        <!-- SVG Labirint Meydanı -->
+        <div class="maze-stage">
+          <div id="maze-frame" class="maze-frame">
+            <svg id="maze-svg" viewBox="0 0 840 640" role="img" aria-label="Qala labirinti xəritəsi"></svg>
+          </div>
+          <div id="status-note" class="status-note" role="status" aria-live="polite"></div>
+        </div>
+
+        <!-- İdarəetmə Paneli (D-pad + Qısa işarələr) -->
+        <aside class="controls-panel" aria-label="Hərəkət idarəetməsi">
+          <div class="controls-heading">Hərəkət</div>
+
+          <div class="dpad">
+            <button class="dpad-btn dpad-up" data-dir="top" type="button" aria-label="Yuxarı get">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+            </button>
+            <button class="dpad-btn dpad-left" data-dir="left" type="button" aria-label="Sola get">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div class="dpad-center" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5" />
+              </svg>
+            </div>
+            <button class="dpad-btn dpad-right" data-dir="right" type="button" aria-label="Sağa get">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+            <button class="dpad-btn dpad-down" data-dir="bottom" type="button" aria-label="Aşağı get">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+          </div>
+
+          <p class="key-hint">
+            Klaviatura oxları, <strong>WASD</strong> və ya ekranda sürüşdürmə ilə hərəkət edin.
+          </p>
+
+          <div class="controls-legend">
+            <div class="legend-row">
+              <span class="legend-swatch" style="background: #9f1f24; border: 1px solid #e6c36e"></span>
+              <span>Möhürlü qapı</span>
+            </div>
+            <div class="legend-row">
+              <span class="legend-swatch" style="background: #e6c36e"></span>
+              <span>Çıxış tağı</span>
+            </div>
+            <div class="legend-row">
+              <span class="legend-swatch" style="background: #3d372f; border: 1px solid #6b6154"></span>
+              <span>Keçilmiş yol</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         EKRAN 3: NƏTİCƏ EKRANI (QALİBİYYƏT / MƏĞLUBİYYƏT)
+         ======================================================================= -->
+    <section id="result-screen" class="screen hidden" aria-labelledby="result-title">
+      <div class="result-card">
+        <div id="result-emblem" class="result-emblem" aria-hidden="true"></div>
+        <h2 id="result-title" class="result-title"></h2>
+        <p id="result-subtitle" class="result-subtitle"></p>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">Sərf olunan vaxt</span>
+            <span id="stat-time" class="stat-value tabular">00:00</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Açılmış qapılar</span>
+            <span id="stat-gates" class="stat-value tabular">0/6</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Düzgün cavablar</span>
+            <span id="stat-correct" class="stat-value tabular">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Səhv cavablar</span>
+            <span id="stat-wrong" class="stat-value tabular">0</span>
+          </div>
+        </div>
+
+        <button id="replay-btn" class="btn-primary" type="button">Yenidən oyna</button>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         MODAL: MÖHÜRLÜ PERQAMENT MƏKTUB VƏ SUAL
+         ======================================================================= -->
+    <div id="letter-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title-ref">
+      <div class="scroll-wrapper">
+        <div class="scroll-rod" aria-hidden="true"></div>
+
+        <div id="parchment-body" class="parchment-body">
+          <!-- Mərhələ A: Qırmızı mum möhürlü bağlı məktub -->
+          <div id="sealed-view" class="sealed-view">
+            <div id="sealed-meta" class="sealed-meta">I Qapı · Qədim Məktub</div>
+            <h2 id="modal-title-ref" class="sealed-title">Qapı möhürlənmişdir</h2>
+            <p class="sealed-desc">
+              Bu qapını açmaq üçün qədim məktubun mum möhürünü qırın və içindəki suala düzgün cavab verin.
+            </p>
+
+            <button id="wax-seal-btn" class="wax-seal-btn" type="button" aria-label="Mum möhürü qır və məktubu aç">
+              <svg width="122" height="122" viewBox="0 0 120 120" fill="none">
+                <defs>
+                  <radialGradient id="waxGrad" cx="38%" cy="34%" r="65%">
+                    <stop offset="0%" stop-color="#c93035" />
+                    <stop offset="55%" stop-color="#9b1d22" />
+                    <stop offset="100%" stop-color="#5d0d11" />
+                  </radialGradient>
+                </defs>
+                <!-- Sol yarı (qırılma animasiyası üçün ayrı qrup) -->
+                <g class="wax-half wax-left">
+                  <path
+                    d="M60 8 C46 7 35 12 26 20 C17 28 11 39 10 53 C9 66 14 78 21 88 C28 98 39 107 52 111 L60 112 L56 82 L63 58 L55 34 Z"
+                    fill="url(#waxGrad)"
+                    stroke="#4d0b0e"
+                    stroke-width="1.6"
+                  />
+                  <path
+                    d="M60 22 A38 38 0 0 0 60 98"
+                    stroke="#e07478"
+                    stroke-width="1.4"
+                    opacity="0.45"
+                  />
+                </g>
+                <!-- Sağ yarı -->
+                <g class="wax-half wax-right">
+                  <path
+                    d="M60 8 C74 8 87 14 95 23 C104 33 111 45 110 60 C109 74 103 87 94 96 C85 105 73 112 60 112 L56 82 L63 58 L55 34 Z"
+                    fill="url(#waxGrad)"
+                    stroke="#4d0b0e"
+                    stroke-width="1.6"
+                  />
+                  <path
+                    d="M60 22 A38 38 0 0 1 60 98"
+                    stroke="#e07478"
+                    stroke-width="1.4"
+                    opacity="0.45"
+                  />
+                </g>
+                <!-- Möhürün mərkəzindəki qala ulduzu damğası -->
+                <g class="wax-half wax-right" opacity="0.88">
+                  <polygon
+                    points="60,36 65,50 79,50 68,58 72,72 60,64 48,72 52,58 41,50 55,50"
+                    fill="none"
+                    stroke="#f3c590"
+                    stroke-width="2"
+                  />
+                  <circle cx="60" cy="56" r="5" fill="#f3c590" opacity="0.85" />
+                </g>
+              </svg>
+            </button>
+
+            <div class="seal-prompt">Möhürü qırmaq üçün klikləyin (və ya Enter basın)</div>
+          </div>
+
+          <!-- Mərhələ B: Açılmış sual və 4 variant -->
+          <div id="question-view" class="question-view hidden">
+            <div class="question-meta">
+              <span id="q-subject" class="question-subject">Fənn</span>
+              <span id="q-gate-label">Qapı 1 / 6</span>
+            </div>
+
+            <div id="q-text" class="question-text"></div>
+
+            <div id="options-list" class="options-list" role="group" aria-label="Cavab variantları"></div>
+
+            <div id="feedback-box" class="feedback-box hidden">
+              <div id="feedback-status" class="feedback-status"></div>
+              <p id="feedback-explanation" class="feedback-explanation"></p>
+              <div class="feedback-actions">
+                <button id="continue-btn" class="btn-ink" type="button">Davam et</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scroll-rod" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <script>
+      /* =========================================================================
+         BÖLMƏ 1: SUAL BANKI (ASAN REDAKTƏ OLUNAN SİYAHI)
+         -------------------------------------------------------------------------
+         Yeni sual əlavə etmək üçün aşağıdakı massivə eyni formatda obyekt əlavə edin.
+         Yeni fənn əlavə etmək üçün sadəcə "fenn" sahəsinə yeni fənn adı yazın —
+         başlanğıc ekranında həmin fənn avtomatik olaraq görünəcək!
+
+         Struktur:
+         {
+           fenn: "Fənnin adı",
+           sual: "Sualın mətni?",
+           variantlar: ["Variant A", "Variant B", "Variant C", "Variant D"],
+           duzgun: 0, // Düzgün cavabın indeksi: 0=A, 1=B, 2=C, 3=D
+           izah: "Cavabın qısa elmi və ya praktiki izahı."
+         }
+         ========================================================================= */
+      const SUAL_BANKI = [
+        /* -------------------- FİZİKA (15 sual) -------------------- */
+        {
+          fenn: 'Fizika',
+          sual: 'Kütləsi 4 kq olan cismə 12 N qüvvə təsir edərsə, cismin təcili nə qədər olar?',
+          variantlar: ['2 m/san²', '3 m/san²', '8 m/san²', '48 m/san²'],
+          duzgun: 1,
+          izah: 'Nyutonun ikinci qanununa görə a = F / m = 12 / 4 = 3 m/san².'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'Səs dalğaları aşağıdakı mühitlərdən hansında yayıla bilmir?',
+          variantlar: ['Polad çubuqda', 'Suda', 'Havada', 'Vakuumda'],
+          duzgun: 3,
+          izah: 'Səs mexaniki dalğadır və yayılması üçün maddə mühiti tələb edir; vakuumda yayılmır.'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'Müqaviməti 5 Om olan naqildən 2 A cərəyan keçirsə, onun uclarındakı gərginlik nə qədərdir?',
+          variantlar: ['2,5 V', '7 V', '10 V', '20 V'],
+          duzgun: 2,
+          izah: 'Dövrə hissəsi üçün Om qanununa görə U = I · R = 2 · 5 = 10 V.'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'Normal atmosfer təzyiqində təmiz suyun qaynama temperaturu neçə dərəcə Selsidir?',
+          variantlar: ['0 °C', '80 °C', '100 °C', '120 °C'],
+          duzgun: 2,
+          izah: 'Normal atmosfer təzyiqində (101,3 kPa) təmiz su 100 °C-də qaynayır.'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'Sabit kütləli cismin sürəti 2 dəfə artdıqda onun kinetik enerjisi necə dəyişər?',
+          variantlar: ['2 dəfə artar', '4 dəfə artar', '2 dəfə azalar', 'Dəyişməz'],
+          duzgun: 1,
+          izah: 'Kinetik enerji sürətin kvadratı ilə düz mütənasibdir (Ek = mv² / 2), buna görə 2² = 4 dəfə artar.'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'İşığın vakuumda yayılma sürəti təxminən nə qədərdir?',
+          variantlar: ['340 m/san', '30 000 km/san', '300 000 km/san', '3 000 000 km/san'],
+          duzgun: 2,
+          izah: 'İşıq vakuumda təxminən 3 · 10⁸ m/san, yəni 300 000 km/san sürətlə yayılır.'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'Beynəlxalq Vahidlər Sistemində (BS) təzyiqin ölçü vahidi hansıdır?',
+          variantlar: ['Nyuton (N)', 'Coul (C)', 'Vatt (Vt)', 'Paskal (Pa)'],
+          duzgun: 3,
+          izah: 'Təzyiq vahid sahəyə düşən perpendikulyar qüvvədir (1 Pa = 1 N/m²).'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'Aşağıdakı fiziki kəmiyyətlərdən hansı vektorial kəmiyyətdir?',
+          variantlar: ['Kütlə', 'Zaman', 'Sürət', 'Temperatur'],
+          duzgun: 2,
+          izah: 'Sürət həm ədədi qiymətə, həm də istiqamətə malik olduğu üçün vektorial kəmiyyətdir.'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'Mayeyə tam batırılmış cismə təsir edən Arximed qüvvəsi hansı kəmiyyətdən asılı deyil?',
+          variantlar: ['Mayenin sıxlığından', 'Cismin həcmindən', 'Sərbəstdüşmə təcilindən', 'Cismin hazırlanma materialının sıxlığından'],
+          duzgun: 3,
+          izah: 'Arximed qüvvəsi FA = ρ_maye · g · V_batan düsturu ilə tapılır və cismin öz sıxlığından asılı deyil.'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'Müqavimətləri 6 Om və 3 Om olan iki rezistor paralel birləşdirilərsə, ümumi müqavimət nə qədər olar?',
+          variantlar: ['2 Om', '4,5 Om', '9 Om', '18 Om'],
+          duzgun: 0,
+          izah: 'Paralel birləşmədə 1/R = 1/6 + 1/3 = 3/6 = 1/2, buradan R = 2 Om alınır.'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'Müstəvi güzgüdən 1,5 m məsafədə duran şagirdlə onun güzgüdəki xəyalı arasındakı məsafə nə qədərdir?',
+          variantlar: ['0,75 m', '1,5 m', '3 m', '4,5 m'],
+          duzgun: 2,
+          izah: 'Müstəvi güzgüdə xəyal güzgüdən eyni məsafədə (1,5 m) yerləşir, ümumi məsafə 1,5 + 1,5 = 3 m olur.'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'Elektrik yükünün saxlanma qanununa əsasən qapalı sistemdə elektrik yüklərinin cəbri cəmi necə dəyişir?',
+          variantlar: ['Zamanla artır', 'Sıfıra bərabər olur', 'Sabit qalır', 'Temperaturdan asılı olaraq azalır'],
+          duzgun: 2,
+          izah: 'Qapalı sistemdə baş verən istənilən prosesdə elektrik yüklərinin cəbri cəmi dəyişməz qalır.'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'İstilik ötürülməsinin hansı növü vakuumda da baş verə bilir?',
+          variantlar: ['İstilikkeçirmə', 'Konveksiya', 'Şüalanma', 'Buxarlanma'],
+          duzgun: 2,
+          izah: 'Şüalanma elektromaqnit dalğaları vasitəsilə baş verir, buna görə Günəşin istiliyi kosmosdan Yerə çatır.'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'Gücü 200 Vt olan elektrik lampası 10 saniyə ərzində nə qədər iş görər?',
+          variantlar: ['20 C', '210 C', '2000 C', '20 000 C'],
+          duzgun: 2,
+          izah: 'Elektrik cərəyanının işi A = P · t = 200 Vt · 10 san = 2000 C.'
+        },
+        {
+          fenn: 'Fizika',
+          sual: 'Yer səthi yaxınlığında sərbəst düşən cismin təcili təxminən nə qədərdir?',
+          variantlar: ['1,6 m/san²', '5,4 m/san²', '9,8 m/san²', '19,6 m/san²'],
+          duzgun: 2,
+          izah: 'Yer səthi yaxınlığında sərbəstdüşmə təcili g ≈ 9,8 m/san² qəbul edilir.'
+        },
+
+        /* -------------------- RİYAZİYYAT (15 sual) -------------------- */
+        {
+          fenn: 'Riyaziyyat',
+          sual: '3x − 7 = 14 tənliyinin kökü hansı ədəddir?',
+          variantlar: ['5', '7', '9', '21'],
+          duzgun: 1,
+          izah: '3x = 14 + 7 = 21, buradan x = 21 / 3 = 7 alınır.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: 'Katetləri 6 sm və 8 sm olan düzbucaqlı üçbucağın hipotenuzu neçə santimetrdir?',
+          variantlar: ['10 sm', '12 sm', '14 sm', '48 sm'],
+          duzgun: 0,
+          izah: 'Pifaqor teoreminə görə c = √(6² + 8²) = √(36 + 64) = √100 = 10 sm.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: '250 ədədinin 20%-i nə qədərdir?',
+          variantlar: ['25', '40', '50', '75'],
+          duzgun: 2,
+          izah: '250 · 20 / 100 = 50.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: 'İstənilən üçbucağın daxili bucaqlarının cəmi neçə dərəcədir?',
+          variantlar: ['90°', '180°', '270°', '360°'],
+          duzgun: 1,
+          izah: 'Evklid həndəsəsində hər bir üçbucağın üç daxili bucağının cəmi 180°-yə bərabərdir.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: 'Radiusu 5 sm olan dairənin sahəsi təxminən nə qədərdir? (π ≈ 3,14)',
+          variantlar: ['15,7 sm²', '31,4 sm²', '78,5 sm²', '157 sm²'],
+          duzgun: 2,
+          izah: 'Dairənin sahəsi S = πr² = 3,14 · 5² = 3,14 · 25 = 78,5 sm².'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: '2⁵ + 3² ifadəsinin qiyməti nəyə bərabərdir?',
+          variantlar: ['16', '38', '41', '64'],
+          duzgun: 2,
+          izah: '2⁵ = 32 və 3² = 9 olduğundan 32 + 9 = 41.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: 'Bir oyun zəri atıldıqda cüt xal düşməsi hadisəsinin ehtimalı nə qədərdir?',
+          variantlar: ['1/6', '1/3', '1/2', '2/3'],
+          duzgun: 2,
+          izah: 'Altı mümkün nəticədən üçü cütdür (2, 4, 6); ehtimal 3/6 = 1/2.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: 'Tərəfi 9 sm olan kvadratın perimetri neçə santimetrdir?',
+          variantlar: ['18 sm', '27 sm', '36 sm', '81 sm'],
+          duzgun: 2,
+          izah: 'Kvadratın perimetri P = 4a = 4 · 9 = 36 sm.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: 'f(x) = 2x + 5 funksiyası verilmişdir. f(4) qiymətini tapın.',
+          variantlar: ['11', '13', '14', '18'],
+          duzgun: 1,
+          izah: 'x yerinə 4 yazdıqda f(4) = 2 · 4 + 5 = 8 + 5 = 13.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: '12 və 18 ədədlərinin ən böyük ortaq böləni (ƏBOB) hansıdır?',
+          variantlar: ['2', '3', '6', '36'],
+          duzgun: 2,
+          izah: 'Həm 12-ni, həm də 18-i qalıqsız bölən ən böyük natural ədəd 6-dır.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: 'x² − 9 = 0 tənliyinin bütün həqiqi kökləri hansılardır?',
+          variantlar: ['Yalnız 3', 'Yalnız −3', '−3 və 3', '−9 və 9'],
+          duzgun: 2,
+          izah: 'x² = 9 olduğundan həm (−3)² = 9, həm də 3² = 9 şərtini ödəyir.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: '4, 7, 9, 12 və 13 ədədlərinin ədədi ortası nə qədərdir?',
+          variantlar: ['8', '9', '10', '11'],
+          duzgun: 1,
+          izah: 'Ədədlərin cəmi 4 + 7 + 9 + 12 + 13 = 45; ədədi orta isə 45 / 5 = 9.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: 'Sinifdə 12 oğlan və 18 qız var. Qızlar bütün sinfin neçə faizini təşkil edir?',
+          variantlar: ['40%', '50%', '60%', '72%'],
+          duzgun: 2,
+          izah: 'Sinifdə cəmi 12 + 18 = 30 şagird var; qızların payı (18 / 30) · 100% = 60%.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: 'Düzgün altıbucaqlının bir daxili bucağı neçə dərəcədir?',
+          variantlar: ['90°', '108°', '120°', '135°'],
+          duzgun: 2,
+          izah: 'Düzgün n-bucaqlının daxili bucağı (n − 2) · 180° / n = 4 · 180° / 6 = 120°.'
+        },
+        {
+          fenn: 'Riyaziyyat',
+          sual: 'log₂ 32 ifadəsinin qiyməti neçədir?',
+          variantlar: ['4', '5', '6', '16'],
+          duzgun: 1,
+          izah: '2⁵ = 32 olduğu üçün log₂ 32 = 5.'
+        },
+
+        /* -------------------- VIBE CODING (15 sual) -------------------- */
+        {
+          fenn: 'Vibe coding',
+          sual: 'Müəllim süni intellektlə dərs üçün riyaziyyat oyunu hazırlayarkən hansı prompt daha dəqiq nəticə verər?',
+          variantlar: [
+            '"Mənə bir riyaziyyat oyunu düzəlt."',
+            '"5-ci sinif üçün kəsrlərin toplanması üzrə 10 suallıq, izahlı və mobil ekrana uyğun Azərbaycan dilində oyun hazırla."',
+            '"Maraqlı və gözəl bir tətbiq yaz, şagirdlər bəyənsin."',
+            '"Kod yaz, amma çətin olmasın."'
+          ],
+          duzgun: 1,
+          izah: 'Sinif səviyyəsi, mövzu, dil, funksiya və cihaz tələbləri konkret göstərildikdə süni intellekt daha keyfiyyətli nəticə yaradır.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Hazırladığınız tətbiqdə "Növbəti sual" düyməsi işləmir. Xətanı süni intellektə necə izah etmək ən səmərəlidir?',
+          variantlar: [
+            '"Heç nə işləmir, hər şeyi sil və yenidən yaz."',
+            '"Bu kod yararsızdır, düzəlt."',
+            '"1-ci suala cavab verdikdən sonra \'Növbəti sual\' düyməsinə klikləyirəm, amma ekran dəyişmir və 2-ci sual açılmır."',
+            '"Düymənin rəngini yaşıl et, bəlkə açılar."'
+          ],
+          duzgun: 2,
+          izah: 'Hansı addımı atdığınızı, nə gözlədiyinizi və əslində nə baş verdiyini dəqiq təsvir etmək xətanın tez tapılmasına kömək edir.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Müəllim süni intellektlə şagird qiymətləndirmə aləti hazırlayarkən məlumat təhlükəsizliyi üçün nəyə əməl etməlidir?',
+          variantlar: [
+            'Şagirdlərin real ad, soyad, FİN kodu və telefon nömrələrini prompta yazmalıdır.',
+            'Yalnız uydurma nümunə adlardan ("Şagird 1", "Şagird 2") istifadə etməli, real şəxsi məlumatları daxil etməməlidir.',
+            'Sinif jurnalının şəklini çəkib birbaşa sistemə yükləməlidir.',
+            'Valideynlərin əlaqə nömrələrini də cədvələ əlavə etməlidir.'
+          ],
+          duzgun: 1,
+          izah: 'Şagirdlərin şəxsi məlumatları qorunmalıdır; tətbiqi hazırlayarkən və yoxlayarkən yalnız anonim nümunə məlumatlar istifadə edilməlidir.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Süni intellektin yaratdığı fənn testini dərsdə istifadə etməzdən əvvəl müəllimin ən vacib addımı nədir?',
+          variantlar: [
+            'Yoxlamadan dərhal şagird qrupuna göndərmək.',
+            'Bütün sualların elmi düzgünlüyünü, cavab açarını və ədəbi dil səlisliyini şəxsən yoxlamaq.',
+            'Yalnız fon rənginin gözəl olub-olmadığına baxmaq.',
+            'Sualların sayını gizlətmək.'
+          ],
+          duzgun: 1,
+          izah: 'Süni intellekt bəzən elmi və ya dil səhvləri edə bilər; müəllim məzmunun yekun məsuliyyətini daşıyır və dərsdən öncə yoxlamalıdır.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Müəllim üçün "vibe coding" yanaşmasının əsas mahiyyəti nədir?',
+          variantlar: [
+            'Bütün proqramlaşdırma dillərini əzbərləyib kodu sıfırdan əl ilə yazmaq.',
+            'İstədiyi tədris tətbiqini təbii dildə aydın təsvir edərək süni intellektin köməyi ilə qurmaq və addım-addım təkmilləşdirmək.',
+            'Yalnız hazır slaydları internetdən yükləmək.',
+            'Dərsin idarə olunmasını tamamilə avtomatlaşdırıb müəllim rolunu aradan qaldırmaq.'
+          ],
+          duzgun: 1,
+          izah: 'Vibe coding kod yazmaq bilməyən müəllimlərə aydın tələblər və dialoq yolu ilə öz fənninə uyğun interaktiv alətlər yaratmaq imkanı verir.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Daha mürəkkəb bir təhsil tətbiqi hazırlayarkən hansı iş strategiyası daha az xəta yaradır?',
+          variantlar: [
+            'Bütün 20 funksiyanı bir uzun cümlədə eyni anda istəmək.',
+            'Əvvəlcə sadə, işlək əsas versiyanı yaratmaq, sonra yeni xüsusiyyətləri mərhələli şəkildə əlavə edib yoxlamaq.',
+            'Hər dəyişiklikdə köhnə layihəni silib sıfırdan başlamaq.',
+            'Heç bir tələb yazmadan süni intellektin öz seçiminə buraxmaq.'
+          ],
+          duzgun: 1,
+          izah: 'İterativ (mərhələli) yanaşma hər yeni funksiyanı ayrı-ayrılıqda sınaqdan keçirməyə və problemləri dərhal görməyə imkan verir.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Tətbiqin məktəbdə internet zəif və ya kəsili olanda da problemsiz işləməsi üçün promptda nə istəmək faydalıdır?',
+          variantlar: [
+            '"Hər səhifə üçün böyük onlayn video faylları qoş."',
+            '"Hamısı tək HTML faylında olsun və xarici şəkil və ya internet kitabxanalarından asılı olmasın."',
+            '"Yalnız bulud serverinə qoşulduqda açılsın."',
+            '"Hər klikdə internetdən yeni məlumat yükləsin."'
+          ],
+          duzgun: 1,
+          izah: 'Xarici asılılığı olmayan tək HTML faylı istənilən məktəb kompüterində oflayn rejimdə etibarlı işləyir.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Hazırlanan oyun sinifdə proyektorla böyük ekranda oynanılacaqsa, prompta hansı dizayn tələbini əlavə etmək vacibdir?',
+          variantlar: [
+            'İncə, kiçik şriftlər və aşağı kontrastlı boz rənglər istifadə olunsun.',
+            'İri oxunaqlı şriftlər, yüksək kontrastlı rənglər və arxa partalardan rahat görünən elementlər olsun.',
+            'Ekranda eyni anda çoxlu kiçik pəncərə yerləşdirilsin.',
+            'Yalnız telefonun şaquli ekranına uyğun hazırlansın.'
+          ],
+          duzgun: 1,
+          izah: 'Proyektorlar işıqlı sinifdə kontrastı azaldır; iri yazı və güclü rəng fərqi bütün sinfin rahat oxumasını təmin edir.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Yeni funksiya əlavə edilərkən əvvəl yaxşı işləyən taymer pozulubsa, süni intellektə nə yazmaq daha doğrudur?',
+          variantlar: [
+            '"Tətbiq korlandı, yenisini düzəlt."',
+            '"Yeni dəyişiklikdən sonra yuxarıdakı taymer saymır; digər funksiyaları pozmadan taymeri əvvəlki kimi işlək vəziyyətə qaytar."',
+            '"Daha 5 yeni düymə əlavə et."',
+            '"Taymeri tamamilə gizlət, görünməsin."'
+          ],
+          duzgun: 1,
+          izah: 'Pozulan hissəni konkret göstərmək və mövcud işlək hissələri qorumağı qeyd etmək əlavə fəsadların qarşısını alır.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Müəllim sonradan sualları kodu pozmadan özü dəyişmək istəyirsə, promptda hansı tələbi qeyd etməlidir?',
+          variantlar: [
+            'Suallar kodun müxtəlif funksiyalarının içinə dağıdılsın.',
+            'Suallar kodun əvvəlində ayrıca, aydın strukturlu və şərhlərlə izah olunmuş massivdə saxlanılsın.',
+            'Suallar xüsusi kodlaşdırma ilə gizlədilsin.',
+            'Hər sual üçün ayrıca fayl yaradılsın.'
+          ],
+          duzgun: 1,
+          izah: 'Ayrıca və şərhlənmiş sual massivi proqramlaşdırma bilməyən müəllimə də mətni asanlıqla yeniləmək imkanı verir.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Şagirdlər tətbiqdən öz smartfonlarında istifadə edəcəksə, promptda hansı texniki tələb vacibdir?',
+          variantlar: [
+            'Yalnız klaviatura düymələri ilə idarə olunsun.',
+            'Kiçik ekranlara uyğunlaşsın (responsive), toxunuş üçün rahat böyük düymələr və sürüşdürmə dəstəyi olsun.',
+            'Ekran eni sabit 1600 piksel saxlanılsın.',
+            'Yalnız siçan kursorunun üzərinə gəlməsi ilə işləsin.'
+          ],
+          duzgun: 1,
+          izah: 'Mobil cihazlarda klaviatura və siçan olmadığı üçün toxunuşlu idarəetmə və uyğunlaşan dizayn əvvəlcədən tələb olunmalıdır.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Süni intellektin yaratdığı Azərbaycan dilində mətndə tərcümə üslubu və ya orfoqrafiya səhvi gördükdə nə etməlisiniz?',
+          variantlar: [
+            'Olduğu kimi saxlayıb şagirdlərə təqdim etmək.',
+            'Konkret ifadələri göstərərək standart ədəbi Azərbaycan dilinə uyğun düzəliş istəmək və ya əl ilə redaktə etmək.',
+            'Bütün oyunu başqa dilə keçirmək.',
+            'İzah hissələrini tamamilə silmək.'
+          ],
+          duzgun: 1,
+          izah: 'Tədris materiallarında ədəbi dil normalarına riayət edilməli, süni intellektin dil xətaları mütləq düzəldilməlidir.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Promptda auditoriyanı və dərs kontekstini (məsələn, "8-ci sinif, 15 dəqiqəlik qrup işi") göstərmək nəyə xidmət edir?',
+          variantlar: [
+            'Sadəcə yazının həcmini böyütməyə.',
+            'Süni intellektin sualların çətinliyini, dilini və interfeysin sadəliyini real dərs məqsədinə uyğunlaşdırmasına.',
+            'Brauzerin yaddaşını təmizləməyə.',
+            'Faylın açılma sürətini azaltmağa.'
+          ],
+          duzgun: 1,
+          izah: 'Auditoriya və istifadə məqsədi aydın olduqda alət pedaqoji baxımdan daha faydalı şəkildə qurulur.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Süni intellektin yanlış fakt uydurması ("halüsinasiya") riskini azaltmaq üçün hansı üsul daha etibarlıdır?',
+          variantlar: [
+            'Dərslikdəki əsas faktları və ya mövzu siyahısını prompta əlavə edərək sualları bunların əsasında hazırlatdırmaq.',
+            'Promptun sonuna sadəcə "səhv etmə" yazmaqla kifayətlənmək.',
+            'Çox qısa, tək sözlük əmr vermək.',
+            'Yaranan sualları oxumadan istifadə etmək.'
+          ],
+          duzgun: 0,
+          izah: 'Etibarlı mənbə mətnini kontekst kimi təqdim etmək süni intellektin uydurma fakt yaratma ehtimalını kəskin azaldır.'
+        },
+        {
+          fenn: 'Vibe coding',
+          sual: 'Hazırladığınız uğurlu dərs oyununu digər fənn müəllimlərinin də öz dərslərində işlətməsi üçün ən yaxşı yol hansıdır?',
+          variantlar: [
+            'Onlara proqramlaşdırma kursu keçməyi təklif etmək.',
+            'Sual massivi asan redaktə olunan tək HTML faylını və qısa dəyişiklik təlimatını paylaşmaq.',
+            'Tətbiqin yalnız şəklini çəkib göndərmək.',
+            'Kodu şifrələyib dəyişdirilməsini qadağan etmək.'
+          ],
+          duzgun: 1,
+          izah: 'Sual bankı ayrıca və aydın strukturlu olan tək HTML faylı istənilən müəllim tərəfindən öz fənninə uyğunlaşdırıla bilər.'
+        }
+      ];
+
+      /* =========================================================================
+         BÖLMƏ 2: OYUN SABİTLƏRİ VƏ ROMA RƏQƏMLƏRİ
+         ========================================================================= */
+      const MAZE_COLS = 8; // Labirintin üfüqi otaq sayı
+      const MAZE_ROWS = 6; // Labirintin şaquli otaq sayı
+      const TOTAL_GATES = 6; // Əsas yol üzərindəki qapı sayı
+      const INITIAL_TORCHES = 3; // Başlanğıc məşəl sayı
+      const CELL_SIZE = 100; // Hər otağın SVG ölçüsü
+      const MARGIN = 20; // Xarici qala divarı haşiyəsi
+      const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+      const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
+
+      /* =========================================================================
+         BÖLMƏ 3: SƏS MÜHƏRRİKİ (WEB AUDIO API — XARİCİ FAYLSIZ SİNTEZ)
+         ========================================================================= */
+      const SoundEngine = (() => {
+        let ctx = null;
+        let muted = false;
+
+        function ensureContext() {
+          if (muted) return null;
+          if (!ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return null;
+            ctx = new AudioCtx();
+          }
+          if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+          }
+          return ctx;
+        }
+
+        function playTone(freq, duration, type = 'sine', volume = 0.08, startDelay = 0, endFreq = null) {
+          const audio = ensureContext();
+          if (!audio) return;
+          const now = audio.currentTime + startDelay;
+          const osc = audio.createOscillator();
+          const gain = audio.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+          if (endFreq !== null) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+          }
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.linearRampToValueAtTime(volume, now + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+          osc.connect(gain);
+          gain.connect(audio.destination);
+          osc.start(now);
+          osc.stop(now + duration + 0.02);
+        }
+
+        function playNoise(duration, filterFreq, volume = 0.06, startDelay = 0) {
+          const audio = ensureContext();
+          if (!audio) return;
+          const now = audio.currentTime + startDelay;
+          const bufferSize = Math.max(1, Math.floor(audio.sampleRate * duration));
+          const buffer = audio.createBuffer(1, bufferSize, audio.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+          const src = audio.createBufferSource();
+          src.buffer = buffer;
+
+          const filter = audio.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(filterFreq, now);
+          filter.Q.setValueAtTime(1.2, now);
+
+          const gain = audio.createGain();
+          gain.gain.setValueAtTime(volume, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+          src.connect(filter);
+          filter.connect(gain);
+          gain.connect(audio.destination);
+          src.start(now);
+          src.stop(now + duration + 0.02);
+        }
+
+        return {
+          setMuted(value) {
+            muted = Boolean(value);
+          },
+          isMuted() {
+            return muted;
+          },
+          step() {
+            playTone(155, 0.06, 'triangle', 0.045, 0, 95);
+            playNoise(0.04, 650, 0.02);
+          },
+          bump() {
+            playTone(95, 0.09, 'sine', 0.07, 0, 52);
+          },
+          letterOpen() {
+            playTone(320, 0.14, 'triangle', 0.05, 0, 260);
+          },
+          sealCrack() {
+            playNoise(0.09, 1400, 0.09, 0);
+            playTone(210, 0.08, 'sawtooth', 0.045, 0, 85);
+            playNoise(0.24, 900, 0.04, 0.08); // Perqament açılma xışıltısı
+          },
+          correct() {
+            playTone(440, 0.16, 'triangle', 0.07, 0);
+            playTone(554.37, 0.18, 'triangle', 0.07, 0.09);
+            playTone(659.25, 0.28, 'triangle', 0.075, 0.18);
+          },
+          gateOpen() {
+            playNoise(0.38, 320, 0.06, 0);
+            playTone(130, 0.42, 'triangle', 0.07, 0, 195);
+            playTone(392, 0.28, 'sine', 0.05, 0.16, 523.25);
+          },
+          wrong() {
+            playTone(220, 0.22, 'sawtooth', 0.045, 0, 170);
+            playTone(165, 0.34, 'triangle', 0.065, 0.14, 115);
+            playNoise(0.32, 1800, 0.045, 0.18); // Məşəlin fışıltı ilə sönməsi
+          },
+          victory() {
+            const notes = [392, 493.88, 587.33, 783.99];
+            notes.forEach((n, idx) => {
+              playTone(n, 0.36, 'triangle', 0.08, idx * 0.13);
+            });
+          },
+          defeat() {
+            const notes = [293.66, 261.63, 220, 174.61];
+            notes.forEach((n, idx) => {
+              playTone(n, 0.42, 'triangle', 0.07, idx * 0.18);
+            });
+          }
+        };
+      })();
+
+      /* =========================================================================
+         BÖLMƏ 4: LABİRİNT MÜHƏRRİKİ (RECURSIVE BACKTRACKER + BFS 6 QAPI)
+         ========================================================================= */
+      const DIRECTIONS = {
+        top: { dr: -1, dc: 0, opposite: 'bottom' },
+        right: { dr: 0, dc: 1, opposite: 'left' },
+        bottom: { dr: 1, dc: 0, opposite: 'top' },
+        left: { dr: 0, dc: -1, opposite: 'right' }
+      };
+
+      /**
+       * Fisher-Yates qarışdırma alqoritmi (bərabər ehtimallı təsadüfi ardıcıllıq)
+       */
+      function shuffleArray(arr) {
+        const copy = arr.slice();
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      /**
+       * İki qonşu otaq arasındakı keçid üçün unikal açar yaradır
+       */
+      function edgeKey(r1, c1, r2, c2) {
+        if (r1 < r2 || (r1 === r2 && c1 < c2)) {
+          return `${r1},${c1}-${r2},${c2}`;
+        }
+        return `${r2},${c2}-${r1},${c1}`;
+      }
+
+      /**
+       * Verilmiş başlanğıc nöqtəsindən BFS ilə ən uzaq nöqtəni və ona gedən yeganə yolu tapır
+       */
+      function findFarthestPath(grid, startR, startC) {
+        const queue = [{ r: startR, c: startC }];
+        const visited = Array.from({ length: MAZE_ROWS }, () => Array(MAZE_COLS).fill(false));
+        const parent = Array.from({ length: MAZE_ROWS }, () => Array(MAZE_COLS).fill(null));
+        visited[startR][startC] = true;
+
+        let farthest = { r: startR, c: startC };
+
+        while (queue.length > 0) {
+          const curr = queue.shift();
+          farthest = curr;
+          const cell = grid[curr.r][curr.c];
+
+          for (const [dir, delta] of Object.entries(DIRECTIONS)) {
+            if (cell.walls[dir]) continue;
+            const nr = curr.r + delta.dr;
+            const nc = curr.c + delta.dc;
+            if (nr >= 0 && nr < MAZE_ROWS && nc >= 0 && nc < MAZE_COLS && !visited[nr][nc]) {
+              visited[nr][nc] = true;
+              parent[nr][nc] = curr;
+              queue.push({ r: nr, c: nc });
+            }
+          }
+        }
+
+        // Yolu geriyə doğru bərpa edirik
+        const path = [];
+        let node = farthest;
+        while (node) {
+          path.push(node);
+          node = parent[node.r][node.c];
+        }
+        path.reverse();
+        return path;
+      }
+
+      /**
+       * 8x6 ölçülü mükəmməl labirint yaradır (dalan yollar + yan keçilməz 6 qapı).
+       * Mükəmməl labirint riyazi olaraq ağac qrafıdır, ona görə başlanğıcdan çıxışa
+       * yalnız bir əsas yol var və qapıların hamısından keçmək məcburidir.
+       */
+      function generateMaze() {
+        let bestResult = null;
+
+        for (let attempt = 0; attempt < 25; attempt++) {
+          const grid = Array.from({ length: MAZE_ROWS }, (_, r) =>
+            Array.from({ length: MAZE_COLS }, (_, c) => ({
+              r,
+              c,
+              walls: { top: true, right: true, bottom: true, left: true },
+              visitedGen: false,
+              explored: false
+            }))
+          );
+
+          // Recursive Backtracker (iterativ yığınla)
+          const stack = [{ r: Math.floor(Math.random() * MAZE_ROWS), c: Math.floor(Math.random() * MAZE_COLS) }];
+          grid[stack[0].r][stack[0].c].visitedGen = true;
+
+          while (stack.length > 0) {
+            const curr = stack[stack.length - 1];
+            const dirs = shuffleArray(Object.keys(DIRECTIONS));
+            let carved = false;
+
+            for (const dir of dirs) {
+              const { dr, dc, opposite } = DIRECTIONS[dir];
+              const nr = curr.r + dr;
+              const nc = curr.c + dc;
+              if (nr >= 0 && nr < MAZE_ROWS && nc >= 0 && nc < MAZE_COLS && !grid[nr][nc].visitedGen) {
+                grid[curr.r][curr.c].walls[dir] = false;
+                grid[nr][nc].walls[opposite] = false;
+                grid[nr][nc].visitedGen = true;
+                stack.push({ r: nr, c: nc });
+                carved = true;
+                break;
+              }
+            }
+            if (!carved) {
+              stack.pop();
+            }
+          }
+
+          // İki mərhələli BFS ilə labirintdəki ən uzun əsas yolu (diametri) tapırıq
+          const pass1 = findFarthestPath(grid, 0, 0);
+          const startNode = pass1[pass1.length - 1];
+          const mainPath = findFarthestPath(grid, startNode.r, startNode.c);
+
+          const candidate = { grid, mainPath };
+          if (!bestResult || mainPath.length > bestResult.mainPath.length) {
+            bestResult = candidate;
+          }
+          // Ən azı 15 otaqlı yol tapıldıqda 6 qapı gözəl bərabər paylanır
+          if (mainPath.length >= 16) break;
+        }
+
+        const { grid, mainPath } = bestResult;
+        const start = mainPath[0];
+        const exit = mainPath[mainPath.length - 1];
+        const totalEdges = mainPath.length - 1;
+
+        // 6 qapını əsas yolun kənarları üzərində bərabər məsafələrlə yerləşdiririk.
+        // 6-cı qapı birbaşa çıxış otağına aparan son keçiddə yerləşir.
+        const gates = [];
+        const gateMap = new Map();
+        const usedEdgeIndices = new Set();
+
+        for (let g = 1; g <= TOTAL_GATES; g++) {
+          let edgeIdx = Math.round((g * (totalEdges - 1)) / TOTAL_GATES);
+          edgeIdx = Math.max(g === 1 ? 1 : 0, Math.min(totalEdges - 1, edgeIdx));
+          while (usedEdgeIndices.has(edgeIdx) && edgeIdx < totalEdges - 1) {
+            edgeIdx++;
+          }
+          usedEdgeIndices.add(edgeIdx);
+
+          const from = mainPath[edgeIdx];
+          const to = mainPath[edgeIdx + 1];
+          const key = edgeKey(from.r, from.c, to.r, to.c);
+
+          let orientation = 'vertical'; // Şaquli divar keçidi (sol-sağ hərəkət)
+          if (from.r !== to.r) {
+            orientation = 'horizontal'; // Üfüqi divar keçidi (yuxarı-aşağı hərəkət)
+          }
+
+          const gateObj = {
+            id: g,
+            roman: ROMAN_NUMERALS[g - 1],
+            key,
+            r1: from.r,
+            c1: from.c,
+            r2: to.r,
+            c2: to.c,
+            orientation,
+            opened: false
+          };
+          gates.push(gateObj);
+          gateMap.set(key, gateObj);
+        }
+
+        return { grid, mainPath, start, exit, gates, gateMap };
+      }
+
+      /* =========================================================================
+         BÖLMƏ 5: OYUN VƏZİYYƏTİ (STATE)
+         ========================================================================= */
+      const state = {
+        screen: 'start', // 'start' | 'playing' | 'result'
+        selectedSubjects: new Set(),
+        maze: null,
+        player: { r: 0, c: 0 },
+        torches: INITIAL_TORCHES,
+        openedGates: 0,
+        correctCount: 0,
+        wrongCount: 0,
+        elapsedSeconds: 0,
+        timerInterval: null,
+
+        // Təkrarsız sual növbəsi
+        questionQueue: [],
+
+        // Aktiv məktub modalı vəziyyəti
+        modal: {
+          active: false,
+          stage: 'sealed', // 'sealed' | 'question' | 'feedback'
+          gate: null,
+          targetPos: null,
+          question: null,
+          answeredCorrectly: false
+        }
+      };
+
+      /* =========================================================================
+         BÖLMƏ 6: DOM ELEMENTLƏRİNƏ İSTİNADLAR
+         ========================================================================= */
+      const el = {
+        startScreen: document.getElementById('start-screen'),
+        gameScreen: document.getElementById('game-screen'),
+        resultScreen: document.getElementById('result-screen'),
+
+        subjectGrid: document.getElementById('subject-grid'),
+        startBtn: document.getElementById('start-btn'),
+        startValidation: document.getElementById('start-validation'),
+
+        hudTorches: document.getElementById('hud-torches'),
+        hudGates: document.getElementById('hud-gates'),
+        hudTimer: document.getElementById('hud-timer'),
+        muteBtn: document.getElementById('mute-btn'),
+        muteIconOn: document.getElementById('mute-icon-on'),
+        muteIconOff: document.getElementById('mute-icon-off'),
+        muteLabel: document.getElementById('mute-label'),
+        quitBtn: document.getElementById('quit-btn'),
+
+        mazeFrame: document.getElementById('maze-frame'),
+        mazeSvg: document.getElementById('maze-svg'),
+        statusNote: document.getElementById('status-note'),
+
+        letterModal: document.getElementById('letter-modal'),
+        parchmentBody: document.getElementById('parchment-body'),
+        sealedView: document.getElementById('sealed-view'),
+        sealedMeta: document.getElementById('sealed-meta'),
+        waxSealBtn: document.getElementById('wax-seal-btn'),
+
+        questionView: document.getElementById('question-view'),
+        qSubject: document.getElementById('q-subject'),
+        qGateLabel: document.getElementById('q-gate-label'),
+        qText: document.getElementById('q-text'),
+        optionsList: document.getElementById('options-list'),
+        feedbackBox: document.getElementById('feedback-box'),
+        feedbackStatus: document.getElementById('feedback-status'),
+        feedbackExplanation: document.getElementById('feedback-explanation'),
+        continueBtn: document.getElementById('continue-btn'),
+
+        resultEmblem: document.getElementById('result-emblem'),
+        resultTitle: document.getElementById('result-title'),
+        resultSubtitle: document.getElementById('result-subtitle'),
+        statTime: document.getElementById('stat-time'),
+        statGates: document.getElementById('stat-gates'),
+        statCorrect: document.getElementById('stat-correct'),
+        statWrong: document.getElementById('stat-wrong'),
+        replayBtn: document.getElementById('replay-btn')
+      };
+
+      /* =========================================================================
+         BÖLMƏ 7: BAŞLANĞIC EKRANI — DİNAMİK FƏNN SEÇİMİ
+         ========================================================================= */
+      function getAvailableSubjects() {
+        const map = new Map();
+        for (const item of SUAL_BANKI) {
+          map.set(item.fenn, (map.get(item.fenn) || 0) + 1);
+        }
+        return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
+      }
+
+      function renderSubjectSelector() {
+        const subjects = getAvailableSubjects();
+        el.subjectGrid.innerHTML = '';
+
+        subjects.forEach(({ name, count }) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'subject-btn' + (state.selectedSubjects.has(name) ? ' selected' : '');
+          btn.setAttribute('aria-pressed', state.selectedSubjects.has(name) ? 'true' : 'false');
+          btn.innerHTML = `
+            <span class="subject-info">
+              <span class="subject-name">${escapeHtml(name)}</span>
+              <span class="subject-count">${count} sual</span>
+            </span>
+            <span class="subject-check" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+          `;
+          btn.addEventListener('click', () => {
+            if (state.selectedSubjects.has(name)) {
+              state.selectedSubjects.delete(name);
+            } else {
+              state.selectedSubjects.add(name);
+            }
+            SoundEngine.step();
+            renderSubjectSelector();
+          });
+          el.subjectGrid.appendChild(btn);
+        });
+
+        const hasSelection = state.selectedSubjects.size > 0;
+        el.startBtn.disabled = !hasSelection;
+        el.startValidation.textContent = hasSelection
+          ? `Seçilmiş fənlər: ${Array.from(state.selectedSubjects).join(', ')}`
+          : 'Oyuna başlamaq üçün ən azı bir fənn seçin.';
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      /* =========================================================================
+         BÖLMƏ 8: HUD YENİLƏNMƏSİ (MƏŞƏLLƏR, QAPILAR, TAYMER)
+         ========================================================================= */
+      function formatTime(totalSeconds) {
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      }
+
+      function renderTorches(justExtinguishedIdx = -1) {
+        el.hudTorches.innerHTML = '';
+        for (let i = 0; i < INITIAL_TORCHES; i++) {
+          const isLit = i < state.torches;
+          const slot = document.createElement('span');
+          slot.className = 'torch-slot' + (isLit ? '' : ' out') + (i === justExtinguishedIdx ? ' extinguish-anim' : '');
+          slot.title = isLit ? 'Yanan məşəl' : 'Sönmüş məşəl';
+          slot.innerHTML = isLit
+            ? `<svg width="22" height="28" viewBox="0 0 24 32" fill="none">
+                 <g class="torch-flame">
+                   <path d="M12 2 C15 6 18 9 17 14 C16.5 16.5 14.5 18 12 18 C9.5 18 7.5 16.5 7 14 C6 9 9 6 12 2 Z" fill="#F29F3D"/>
+                   <path d="M12 7 C13.8 9.8 14.8 11.8 14.3 14.2 C13.9 15.8 13.1 16.8 12 16.8 C10.9 16.8 10.1 15.8 9.7 14.2 C9.2 11.8 10.2 9.8 12 7 Z" fill="#FFE699"/>
+                 </g>
+                 <rect x="8.5" y="17.5" width="7" height="3" rx="1" fill="#C99B3C"/>
+                 <path d="M10 20.5 H14 L13.2 30 H10.8 Z" fill="#7B5630"/>
+               </svg>`
+            : `<svg width="22" height="28" viewBox="0 0 24 32" fill="none">
+                 <path d="M11 11 C10 8.5 12.5 7.5 12 5" stroke="#8F877C" stroke-width="1.4" stroke-linecap="round" opacity="0.65"/>
+                 <rect x="8.5" y="17.5" width="7" height="3" rx="1" fill="#6F685E"/>
+                 <path d="M10 20.5 H14 L13.2 30 H10.8 Z" fill="#4D463E"/>
+               </svg>`;
+          el.hudTorches.appendChild(slot);
+        }
+      }
+
+      function updateHud() {
+        el.hudGates.textContent = `${state.openedGates}/${TOTAL_GATES}`;
+        el.hudTimer.textContent = formatTime(state.elapsedSeconds);
+      }
+
+      let noteTimeout = null;
+      function showStatusNote(message) {
+        el.statusNote.textContent = message;
+        el.statusNote.classList.add('visible');
+        clearTimeout(noteTimeout);
+        noteTimeout = setTimeout(() => {
+          el.statusNote.classList.remove('visible');
+        }, 2400);
+      }
+
+      /* =========================================================================
+         BÖLMƏ 9: SVG LABİRİNT ÇƏKİCİSİ (MEMARLIQ, QAPILAR VƏ MƏŞƏL İŞIĞI)
+         ========================================================================= */
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+
+      function svgEl(tag, attrs = {}) {
+        const node = document.createElementNS(SVG_NS, tag);
+        for (const [k, v] of Object.entries(attrs)) {
+          node.setAttribute(k, String(v));
+        }
+        return node;
+      }
+
+      function cellCenter(r, c) {
+        return {
+          x: MARGIN + c * CELL_SIZE + CELL_SIZE / 2,
+          y: MARGIN + r * CELL_SIZE + CELL_SIZE / 2
+        };
+      }
+
+      /**
+       * Oyunçunun cari otağını və ona divarsız birləşən yaxın otaqları kəşf edilmiş qeyd edir
+       */
+      function revealAroundPlayer() {
+        const { grid, gateMap } = state.maze;
+        const { r, c } = state.player;
+        grid[r][c].explored = true;
+
+        // Birbaşa açıq olan qonşu otaqları (və qapı qarşısını) kəşf siyahısına salırıq
+        for (const [dir, delta] of Object.entries(DIRECTIONS)) {
+          if (grid[r][c].walls[dir]) continue;
+          const nr = r + delta.dr;
+          const nc = c + delta.dc;
+          if (nr < 0 || nr >= MAZE_ROWS || nc < 0 || nc >= MAZE_COLS) continue;
+          const g = gateMap.get(edgeKey(r, c, nr, nc));
+          // Bağlı qapının o biri tərəfi qaranlıq qalsın, yalnız açıq keçidlər görünsün
+          if (!g || g.opened) {
+            grid[nr][nc].explored = true;
+          }
+        }
+      }
+
+      /**
+       * Labirintin tam SVG qrafikasını sıfırdan qurur
+       */
+      function buildMazeSvg() {
+        const svg = el.mazeSvg;
+        svg.innerHTML = '';
+
+        const W = MAZE_COLS * CELL_SIZE + MARGIN * 2;
+        const H = MAZE_ROWS * CELL_SIZE + MARGIN * 2;
+
+        /* --- DEFS: Daş döşəmə naxışı, məşəl işığı qradiyentləri və duman maskası --- */
+        const defs = svgEl('defs');
+
+        // Qala daşı döşəmə naxışı
+        const floorPattern = svgEl('pattern', {
+          id: 'stoneFloor',
+          width: 50,
+          height: 50,
+          patternUnits: 'userSpaceOnUse'
+        });
+        floorPattern.appendChild(svgEl('rect', { width: 50, height: 50, fill: '#27231e' }));
+        floorPattern.appendChild(
+          svgEl('path', {
+            d: 'M0 25 H50 M25 0 V25 M0 50 H50 M50 25 V50',
+            stroke: '#1d1a16',
+            'stroke-width': 1.4
+          })
+        );
+        floorPattern.appendChild(
+          svgEl('rect', { x: 2, y: 2, width: 21, height: 21, fill: '#2c2721', opacity: 0.45 })
+        );
+        floorPattern.appendChild(
+          svgEl('rect', { x: 27, y: 27, width: 21, height: 21, fill: '#221e19', opacity: 0.45 })
+        );
+        defs.appendChild(floorPattern);
+
+        // Yumşaq kənarlı duman filtri
+        const fogBlur = svgEl('filter', { id: 'fogBlur', x: '-20%', y: '-20%', width: '140%', height: '140%' });
+        fogBlur.appendChild(svgEl('feGaussianBlur', { stdDeviation: '14' }));
+        defs.appendChild(fogBlur);
+
+        // Məşəl işığının maska qradiyenti (qara = tam şəffaf/işıqlı, ağ = qaranlıq)
+        const torchMaskGrad = svgEl('radialGradient', { id: 'torchMaskGrad' });
+        torchMaskGrad.appendChild(svgEl('stop', { offset: '0%', 'stop-color': '#000000' }));
+        torchMaskGrad.appendChild(svgEl('stop', { offset: '52%', 'stop-color': '#0e0e0e' }));
+        torchMaskGrad.appendChild(svgEl('stop', { offset: '78%', 'stop-color': '#787878' }));
+        torchMaskGrad.appendChild(svgEl('stop', { offset: '100%', 'stop-color': '#ffffff' }));
+        defs.appendChild(torchMaskGrad);
+
+        // Məşəl ətrafındakı isti qızılı-narıncı işıq haləsi
+        const torchWarmGlow = svgEl('radialGradient', { id: 'torchWarmGlow' });
+        torchWarmGlow.appendChild(svgEl('stop', { offset: '0%', 'stop-color': '#ffb84d', 'stop-opacity': '0.32' }));
+        torchWarmGlow.appendChild(svgEl('stop', { offset: '45%', 'stop-color': '#e08a2e', 'stop-opacity': '0.13' }));
+        torchWarmGlow.appendChild(svgEl('stop', { offset: '100%', 'stop-color': '#000000', 'stop-opacity': '0' }));
+        defs.appendChild(torchWarmGlow);
+
+        // Çıxış portalının qızılı parıltısı
+        const exitGlow = svgEl('radialGradient', { id: 'exitGlow' });
+        exitGlow.appendChild(svgEl('stop', { offset: '0%', 'stop-color': '#ffe28a', 'stop-opacity': '0.68' }));
+        exitGlow.appendChild(svgEl('stop', { offset: '55%', 'stop-color': '#c99b3c', 'stop-opacity': '0.22' }));
+        exitGlow.appendChild(svgEl('stop', { offset: '100%', 'stop-color': '#c99b3c', 'stop-opacity': '0' }));
+        defs.appendChild(exitGlow);
+
+        // Fog of war maskası:
+        // Ağ = tam qaranlıq | Boz (#7b7b7b) = keçilmiş solğun yol | Qara = məşəl dairəsi
+        const fogMask = svgEl('mask', { id: 'fogMask' });
+        fogMask.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: '#ffffff' }));
+
+        const exploredLayer = svgEl('g', { id: 'fog-explored-layer', filter: 'url(#fogBlur)' });
+        fogMask.appendChild(exploredLayer);
+
+        const torchCutoutGroup = svgEl('g', { id: 'fog-torch-cutout' });
+        const torchCutoutCircle = svgEl('circle', {
+          id: 'fog-torch-circle',
+          cx: 0,
+          cy: 0,
+          r: 185,
+          fill: 'url(#torchMaskGrad)'
+        });
+        torchCutoutGroup.appendChild(torchCutoutCircle);
+        fogMask.appendChild(torchCutoutGroup);
+        defs.appendChild(fogMask);
+
+        svg.appendChild(defs);
+
+        /* --- QAT 1: XARİCİ QALA BÜNÖVRƏSİ VƏ DAŞ DÖŞƏMƏ --- */
+        svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: '#1a1714' }));
+        svg.appendChild(
+          svgEl('rect', {
+            x: MARGIN,
+            y: MARGIN,
+            width: MAZE_COLS * CELL_SIZE,
+            height: MAZE_ROWS * CELL_SIZE,
+            fill: 'url(#stoneFloor)'
+          })
+        );
+
+        /* --- QAT 2: BAŞLANĞIC VƏ ÇIXIŞ OTAQLARININ MEMARLIQ NİŞANLARI --- */
+        const { start, exit, grid, gates } = state.maze;
+
+        // Başlanğıc otağındakı daş dairə
+        const startPt = cellCenter(start.r, start.c);
+        const startGroup = svgEl('g', { opacity: '0.6' });
+        startGroup.appendChild(
+          svgEl('circle', {
+            cx: startPt.x,
+            cy: startPt.y,
+            r: 26,
+            fill: 'none',
+            stroke: '#8a7a62',
+            'stroke-width': 1.5,
+            'stroke-dasharray': '4 4'
+          })
+        );
+        svg.appendChild(startGroup);
+
+        // Çıxış otağı: Səkkizguşəli qızılı Azərbaycan memarlığı ulduzu və tağ nişanı
+        const exitPt = cellCenter(exit.r, exit.c);
+        const exitGroup = svgEl('g', { id: 'exit-portal' });
+        exitGroup.appendChild(svgEl('circle', { cx: exitPt.x, cy: exitPt.y, r: 42, fill: 'url(#exitGlow)' }));
+        exitGroup.appendChild(
+          svgEl('circle', {
+            cx: exitPt.x,
+            cy: exitPt.y,
+            r: 26,
+            fill: '#231c10',
+            stroke: '#e6c36e',
+            'stroke-width': 2.2
+          })
+        );
+        // Səkkizguşəli ulduz (iki üst-üstə kvadrat)
+        exitGroup.appendChild(
+          svgEl('rect', {
+            x: exitPt.x - 13,
+            y: exitPt.y - 13,
+            width: 26,
+            height: 26,
+            fill: '#c99b3c',
+            opacity: '0.88'
+          })
+        );
+        exitGroup.appendChild(
+          svgEl('rect', {
+            x: exitPt.x - 13,
+            y: exitPt.y - 13,
+            width: 26,
+            height: 26,
+            fill: '#e6c36e',
+            transform: `rotate(45 ${exitPt.x} ${exitPt.y})`
+          })
+        );
+        exitGroup.appendChild(svgEl('circle', { cx: exitPt.x, cy: exitPt.y, r: 6, fill: '#fff3c4' }));
+        svg.appendChild(exitGroup);
+
+        /* --- QAT 3: QALA DİVARLARI (QALIN DAŞ HÖRGÜSÜ) --- */
+        const wallsShadow = svgEl('g', { stroke: '#0c0b09', 'stroke-width': 16, 'stroke-linecap': 'square' });
+        const wallsBody = svgEl('g', { stroke: '#494138', 'stroke-width': 11, 'stroke-linecap': 'square' });
+        const wallsHighlight = svgEl('g', { stroke: '#695d4f', 'stroke-width': 3, 'stroke-linecap': 'square' });
+
+        function addWallLine(x1, y1, x2, y2) {
+          wallsShadow.appendChild(svgEl('line', { x1, y1, x2, y2 }));
+          wallsBody.appendChild(svgEl('line', { x1, y1, x2, y2 }));
+          wallsHighlight.appendChild(svgEl('line', { x1, y1: y1 - 1.2, x2, y2: y2 - 1.2 }));
+        }
+
+        for (let r = 0; r < MAZE_ROWS; r++) {
+          for (let c = 0; c < MAZE_COLS; c++) {
+            const cell = grid[r][c];
+            const x = MARGIN + c * CELL_SIZE;
+            const y = MARGIN + r * CELL_SIZE;
+
+            if (cell.walls.top) addWallLine(x, y, x + CELL_SIZE, y);
+            if (cell.walls.left) addWallLine(x, y, x, y + CELL_SIZE);
+            if (r === MAZE_ROWS - 1 && cell.walls.bottom) addWallLine(x, y + CELL_SIZE, x + CELL_SIZE, y + CELL_SIZE);
+            if (c === MAZE_COLS - 1 && cell.walls.right) addWallLine(x + CELL_SIZE, y, x + CELL_SIZE, y + CELL_SIZE);
+          }
+        }
+
+        svg.appendChild(wallsShadow);
+        svg.appendChild(wallsBody);
+        svg.appendChild(wallsHighlight);
+
+        // Künc qüllə sütunları (divar kəsişmələrinə orta əsr qala möhkəmliyi verir)
+        const pillarsGroup = svgEl('g');
+        for (let r = 0; r <= MAZE_ROWS; r++) {
+          for (let c = 0; c <= MAZE_COLS; c++) {
+            const px = MARGIN + c * CELL_SIZE;
+            const py = MARGIN + r * CELL_SIZE;
+            pillarsGroup.appendChild(
+              svgEl('rect', {
+                x: px - 6.5,
+                y: py - 6.5,
+                width: 13,
+                height: 13,
+                rx: 2,
+                fill: '#564c40',
+                stroke: '#161411',
+                'stroke-width': 1.5
+              })
+            );
+          }
+        }
+        svg.appendChild(pillarsGroup);
+
+        /* --- QAT 4: 6 SİVRİ ŞƏRQ TAĞLI QAPI --- */
+        const gatesGroup = svgEl('g', { id: 'gates-layer' });
+        gates.forEach((gate) => {
+          gatesGroup.appendChild(createGateSvg(gate));
+        });
+        svg.appendChild(gatesGroup);
+
+        /* --- QAT 5: OYUNÇU VƏ MƏŞƏL İŞIĞI HALƏSİ --- */
+        const glowGroup = svgEl('g', { id: 'torch-glow-group' });
+        glowGroup.appendChild(svgEl('circle', { cx: 0, cy: 0, r: 175, fill: 'url(#torchWarmGlow)' }));
+        svg.appendChild(glowGroup);
+
+        const playerGroup = svgEl('g', { id: 'player-group' });
+        // Kölgə
+        playerGroup.appendChild(svgEl('ellipse', { cx: 0, cy: 14, rx: 16, ry: 8, fill: '#000000', opacity: '0.45' }));
+        // Geyim / bürüncək
+        playerGroup.appendChild(
+          svgEl('circle', {
+            cx: 0,
+            cy: 2,
+            r: 17,
+            fill: '#3a4a5c',
+            stroke: '#c99b3c',
+            'stroke-width': 2.2
+          })
+        );
+        // Başlıq / çalma-baş örtüyü
+        playerGroup.appendChild(
+          svgEl('circle', {
+            cx: 0,
+            cy: -1,
+            r: 10,
+            fill: '#efe1c1',
+            stroke: '#5a442a',
+            'stroke-width': 1.5
+          })
+        );
+        // Əlindəki yanan məşəl
+        playerGroup.appendChild(
+          svgEl('line', { x1: 11, y1: 6, x2: 19, y2: -8, stroke: '#8c6239', 'stroke-width': 3.5, 'stroke-linecap': 'round' })
+        );
+        const pFlame = svgEl('g', { class: 'torch-flame' });
+        pFlame.appendChild(
+          svgEl('path', {
+            d: 'M19 -20 C23 -15 24 -11 21.5 -8 C19.5 -6 17.5 -7.5 16.5 -10 C15.5 -13 17 -16.5 19 -20 Z',
+            fill: '#f59e33'
+          })
+        );
+        pFlame.appendChild(svgEl('circle', { cx: 19.3, cy: -11.5, r: 3.3, fill: '#fff1a8' }));
+        playerGroup.appendChild(pFlame);
+        svg.appendChild(playerGroup);
+
+        /* --- QAT 6: QARANLIQ ÖRTÜYÜ (FOG OF WAR) --- */
+        const fogOverlay = svgEl('rect', {
+          x: 0,
+          y: 0,
+          width: W,
+          height: H,
+          fill: '#0b0a09',
+          opacity: '0.96',
+          mask: 'url(#fogMask)',
+          'pointer-events': 'none'
+        });
+        svg.appendChild(fogOverlay);
+
+        updatePlayerAndFogVisuals(false);
+      }
+
+      /**
+       * Şərq tağlı qapı SVG elementini yaradır
+       */
+      function createGateSvg(gate) {
+        const g = svgEl('g', { id: `gate-${gate.id}` });
+        const midX = MARGIN + ((gate.c1 + gate.c2) / 2 + 0.5) * CELL_SIZE;
+        const midY = MARGIN + ((gate.r1 + gate.r2) / 2 + 0.5) * CELL_SIZE;
+
+        if (gate.orientation === 'vertical') {
+          // Şaquli keçid (sol-sağ arasındakı sivri tağlı qapı)
+          // Daş tağ dayaqları
+          g.appendChild(svgEl('rect', { x: midX - 12, y: midY - 46, width: 24, height: 10, rx: 2, fill: '#6c6051', stroke: '#161411', 'stroke-width': 1.5 }));
+          g.appendChild(svgEl('rect', { x: midX - 12, y: midY + 36, width: 24, height: 10, rx: 2, fill: '#6c6051', stroke: '#161411', 'stroke-width': 1.5 }));
+          // Qapı layları
+          g.appendChild(
+            svgEl('rect', {
+              x: midX - 9,
+              y: midY - 38,
+              width: 18,
+              height: 76,
+              rx: 3,
+              fill: '#5c3c1e',
+              stroke: '#e6c36e',
+              'stroke-width': 2
+            })
+          );
+          // Dəmir şəbəkə və qızılı bəzək zolaqları
+          g.appendChild(svgEl('line', { x1: midX, y1: midY - 36, x2: midX, y2: midY + 36, stroke: '#2c1b0c', 'stroke-width': 2.5 }));
+          g.appendChild(svgEl('line', { x1: midX - 8, y1: midY - 20, x2: midX + 8, y2: midY - 20, stroke: '#c99b3c', 'stroke-width': 1.6 }));
+          g.appendChild(svgEl('line', { x1: midX - 8, y1: midY + 20, x2: midX + 8, y2: midY + 20, stroke: '#c99b3c', 'stroke-width': 1.6 }));
+        } else {
+          // Üfüqi keçid (yuxarı-aşağı arasındakı sivri Şərq tağlı qapı)
+          // Daş tağ dayaqları
+          g.appendChild(svgEl('rect', { x: midX - 46, y: midY - 12, width: 10, height: 24, rx: 2, fill: '#6c6051', stroke: '#161411', 'stroke-width': 1.5 }));
+          g.appendChild(svgEl('rect', { x: midX + 36, y: midY - 12, width: 10, height: 24, rx: 2, fill: '#6c6051', stroke: '#161411', 'stroke-width': 1.5 }));
+          // Sivri tağ konturu
+          g.appendChild(
+            svgEl('path', {
+              d: `M${midX - 38} ${midY + 9} V${midY - 2} C${midX - 36} ${midY - 11} ${midX - 14} ${midY - 15} ${midX} ${midY - 18} C${midX + 14} ${midY - 15} ${midX + 36} ${midY - 11} ${midX + 38} ${midY - 2} V${midY + 9} Z`,
+              fill: '#5c3c1e',
+              stroke: '#e6c36e',
+              'stroke-width': 2
+            })
+          );
+          g.appendChild(svgEl('line', { x1: midX - 36, y1: midY, x2: midX + 36, y2: midY, stroke: '#2c1b0c', 'stroke-width': 2.2 }));
+          g.appendChild(svgEl('line', { x1: midX - 20, y1: midY - 10, x2: midX - 20, y2: midY + 8, stroke: '#c99b3c', 'stroke-width': 1.6 }));
+          g.appendChild(svgEl('line', { x1: midX + 20, y1: midY - 10, x2: midX + 20, y2: midY + 8, stroke: '#c99b3c', 'stroke-width': 1.6 }));
+        }
+
+        // Qapının mərkəzindəki qırmızı mum möhürü və Roma rəqəmi
+        g.appendChild(
+          svgEl('circle', {
+            cx: midX,
+            cy: midY,
+            r: 13.5,
+            fill: '#9f1f24',
+            stroke: '#e6c36e',
+            'stroke-width': 1.8
+          })
+        );
+        const label = svgEl('text', {
+          x: midX,
+          y: midY + 4.5,
+          'text-anchor': 'middle',
+          fill: '#f7e6bd',
+          'font-family': 'EB Garamond, Georgia, serif',
+          'font-size': '13',
+          'font-weight': '700'
+        });
+        label.textContent = gate.roman;
+        g.appendChild(label);
+
+        return g;
+      }
+
+      /**
+       * Oyunçunun mövqeyini, məşəl radiusunu və keçilmiş yolların solğun maskasını yeniləyir
+       */
+      function updatePlayerAndFogVisuals(animate = true) {
+        const pt = cellCenter(state.player.r, state.player.c);
+        const playerGroup = document.getElementById('player-group');
+        const glowGroup = document.getElementById('torch-glow-group');
+        const torchCutout = document.getElementById('fog-torch-cutout');
+        const torchCircle = document.getElementById('fog-torch-circle');
+        const exploredLayer = document.getElementById('fog-explored-layer');
+
+        if (!playerGroup || !glowGroup || !torchCutout || !exploredLayer) return;
+
+        if (!animate) {
+          playerGroup.style.transition = 'none';
+          glowGroup.style.transition = 'none';
+        } else {
+          playerGroup.style.transition = '';
+          glowGroup.style.transition = '';
+        }
+
+        const transformVal = `translate(${pt.x}px, ${pt.y}px)`;
+        playerGroup.style.transform = transformVal;
+        glowGroup.style.transform = transformVal;
+
+        // SVG maska daxilindəki dairənin koordinatı
+        torchCutout.setAttribute('transform', `translate(${pt.x}, ${pt.y})`);
+        // Məşəl sayı azaldıqca işıq radiusu bir qədər yığılır, amma qonşu otaqlar aydın qalır
+        const radiusByTorches = [125, 152, 174, 196][state.torches] || 175;
+        torchCircle.setAttribute('r', String(radiusByTorches));
+
+        // Keçilmiş yolların solğun xatirə qatını yeniləyirik
+        exploredLayer.innerHTML = '';
+        const { grid } = state.maze;
+        for (let r = 0; r < MAZE_ROWS; r++) {
+          for (let c = 0; c < MAZE_COLS; c++) {
+            if (!grid[r][c].explored) continue;
+            // #7d7d7d maska rəngi qaranlığı ~50% azaldır -> keçilmiş yollar solğun görünür
+            exploredLayer.appendChild(
+              svgEl('rect', {
+                x: MARGIN + c * CELL_SIZE - 8,
+                y: MARGIN + r * CELL_SIZE - 8,
+                width: CELL_SIZE + 16,
+                height: CELL_SIZE + 16,
+                rx: 14,
+                fill: '#787878'
+              })
+            );
+          }
+        }
+      }
+
+      /* =========================================================================
+         BÖLMƏ 10: OYUN AXINI — BAŞLAMA, HƏRƏKƏT VƏ QAPILAR
+         ========================================================================= */
+      function showScreen(name) {
+        state.screen = name;
+        el.startScreen.classList.toggle('hidden', name !== 'start');
+        el.gameScreen.classList.toggle('hidden', name !== 'playing');
+        el.resultScreen.classList.toggle('hidden', name !== 'result');
+      }
+
+      function stopTimer() {
+        if (state.timerInterval) {
+          clearInterval(state.timerInterval);
+          state.timerInterval = null;
+        }
+      }
+
+      function startGame() {
+        if (state.selectedSubjects.size === 0) return;
+
+        // Seçilmiş fənlərdən təsadüfi qarışdırılmış və təkrarsız sual növbəsi yaradırıq
+        const pool = SUAL_BANKI.filter((q) => state.selectedSubjects.has(q.fenn));
+        state.questionQueue = shuffleArray(pool);
+
+        // Yeni təsadüfi labirint
+        state.maze = generateMaze();
+        state.player = { r: state.maze.start.r, c: state.maze.start.c };
+        state.torches = INITIAL_TORCHES;
+        state.openedGates = 0;
+        state.correctCount = 0;
+        state.wrongCount = 0;
+        state.elapsedSeconds = 0;
+        state.modal.active = false;
+        el.letterModal.classList.add('hidden');
+
+        revealAroundPlayer();
+        buildMazeSvg();
+        renderTorches();
+        updateHud();
+        showScreen('playing');
+        showStatusNote('Qalaya daxil oldunuz. Möhürlü qapılara doğru irəliləyin.');
+
+        stopTimer();
+        state.timerInterval = setInterval(() => {
+          if (state.screen === 'playing') {
+            state.elapsedSeconds++;
+            updateHud();
+          }
+        }, 1000);
+      }
+
+      function attemptMove(dir) {
+        if (state.screen !== 'playing' || state.modal.active) return;
+        const delta = DIRECTIONS[dir];
+        if (!delta) return;
+
+        const { r, c } = state.player;
+        const cell = state.maze.grid[r][c];
+
+        // Divara dəyibsə
+        if (cell.walls[dir]) {
+          SoundEngine.bump();
+          el.mazeFrame.classList.remove('bump');
+          void el.mazeFrame.offsetWidth;
+          el.mazeFrame.classList.add('bump');
+          return;
+        }
+
+        const nr = r + delta.dr;
+        const nc = c + delta.dc;
+        const key = edgeKey(r, c, nr, nc);
+        const gate = state.maze.gateMap.get(key);
+
+        // Bağlı qapıya çatdıqda möhürlü məktubu açırıq
+        if (gate && !gate.opened) {
+          openSealedLetter(gate, { r: nr, c: nc });
+          return;
+        }
+
+        // Açıq keçid — oyunçu növbəti otağa addımlayır
+        movePlayerTo(nr, nc);
+      }
+
+      function movePlayerTo(nr, nc) {
+        state.player = { r: nr, c: nc };
+        SoundEngine.step();
+        revealAroundPlayer();
+        updatePlayerAndFogVisuals(true);
+
+        // Son qapıdan keçib çıxış otağına çatdıqda qalibiyyət
+        if (nr === state.maze.exit.r && nc === state.maze.exit.c) {
+          setTimeout(() => {
+            finishGame(true);
+          }, 260);
+        }
+      }
+
+      /* =========================================================================
+         BÖLMƏ 11: MÖHÜRLÜ PERQAMENT MƏKTUB VƏ SUAL AXINI
+         ========================================================================= */
+      function drawNextQuestion() {
+        if (state.questionQueue.length === 0) {
+          // Ehtiyat tədbiri (normalda 15 sual həmişə kifayətdir)
+          const pool = SUAL_BANKI.filter((q) => state.selectedSubjects.has(q.fenn));
+          state.questionQueue = shuffleArray(pool);
+        }
+        return state.questionQueue.pop();
+      }
+
+      function openSealedLetter(gate, targetPos) {
+        const question = drawNextQuestion();
+        state.modal = {
+          active: true,
+          stage: 'sealed',
+          gate,
+          targetPos,
+          question,
+          answeredCorrectly: false
+        };
+
+        el.sealedMeta.textContent = `${gate.roman} Qapı · Möhürlü Qədim Məktub`;
+        el.waxSealBtn.classList.remove('cracking');
+        el.waxSealBtn.disabled = false;
+        el.sealedView.classList.remove('hidden');
+        el.questionView.classList.add('hidden');
+        el.feedbackBox.classList.add('hidden');
+        el.parchmentBody.classList.remove('unrolling');
+        el.letterModal.classList.remove('hidden');
+
+        SoundEngine.letterOpen();
+        setTimeout(() => el.waxSealBtn.focus(), 50);
+      }
+
+      function crackSealAndShowQuestion() {
+        if (!state.modal.active || state.modal.stage !== 'sealed') return;
+        state.modal.stage = 'cracking';
+        el.waxSealBtn.disabled = true;
+        el.waxSealBtn.classList.add('cracking');
+        SoundEngine.sealCrack();
+
+        setTimeout(() => {
+          if (!state.modal.active) return;
+          state.modal.stage = 'question';
+          const { gate, question } = state.modal;
+
+          el.sealedView.classList.add('hidden');
+          el.questionView.classList.remove('hidden');
+          el.parchmentBody.classList.remove('unrolling');
+          void el.parchmentBody.offsetWidth;
+          el.parchmentBody.classList.add('unrolling');
+
+          el.qSubject.textContent = question.fenn;
+          el.qGateLabel.textContent = `Qapı ${gate.id} / ${TOTAL_GATES}`;
+          el.qText.textContent = question.sual;
+
+          el.optionsList.innerHTML = '';
+          question.variantlar.forEach((optText, idx) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'option-btn';
+            btn.dataset.index = String(idx);
+            btn.innerHTML = `
+              <span class="option-key" aria-hidden="true">${OPTION_LETTERS[idx]}</span>
+              <span>${escapeHtml(optText)}</span>
+            `;
+            btn.addEventListener('click', () => handleAnswer(idx));
+            el.optionsList.appendChild(btn);
+          });
+
+          const firstOpt = el.optionsList.querySelector('button');
+          if (firstOpt) firstOpt.focus();
+        }, 310);
+      }
+
+      function handleAnswer(selectedIndex) {
+        if (!state.modal.active || state.modal.stage !== 'question') return;
+        state.modal.stage = 'feedback';
+
+        const { question } = state.modal;
+        const isCorrect = selectedIndex === question.duzgun;
+        state.modal.answeredCorrectly = isCorrect;
+
+        const buttons = el.optionsList.querySelectorAll('.option-btn');
+        buttons.forEach((btn, idx) => {
+          btn.disabled = true;
+          if (idx === question.duzgun) {
+            btn.classList.add('correct');
+          } else if (idx === selectedIndex && !isCorrect) {
+            btn.classList.add('wrong');
+          } else {
+            btn.classList.add('dimmed');
+          }
+        });
+
+        el.feedbackBox.classList.remove('hidden');
+        el.feedbackExplanation.textContent = question.izah;
+
+        if (isCorrect) {
+          state.correctCount++;
+          SoundEngine.correct();
+          el.feedbackStatus.className = 'feedback-status is-correct';
+          el.feedbackStatus.textContent = '✓ Düzgün cavab — qapının kilidi açıldı!';
+          el.continueBtn.textContent = 'Qapını aç';
+          el.continueBtn.className = 'btn-ink victory-gate';
+        } else {
+          state.wrongCount++;
+          const lostIdx = state.torches - 1;
+          state.torches = Math.max(0, state.torches - 1);
+          renderTorches(lostIdx);
+          updatePlayerAndFogVisuals(true);
+          SoundEngine.wrong();
+
+          el.feedbackStatus.className = 'feedback-status is-wrong';
+          el.feedbackStatus.textContent =
+            state.torches === 0
+              ? '✗ Səhv cavab — sonuncu məşəl də söndü'
+              : `✗ Səhv cavab — bir məşəl söndü (düzgün variant: ${OPTION_LETTERS[question.duzgun]})`;
+
+          el.continueBtn.textContent = state.torches === 0 ? 'Nəticəyə bax' : 'Labirintə qayıt';
+          el.continueBtn.className = 'btn-ink';
+        }
+
+        setTimeout(() => el.continueBtn.focus(), 40);
+      }
+
+      function closeLetterAndContinue() {
+        if (!state.modal.active || state.modal.stage !== 'feedback') return;
+
+        const { gate, targetPos, answeredCorrectly } = state.modal;
+        state.modal.active = false;
+        el.letterModal.classList.add('hidden');
+
+        if (answeredCorrectly) {
+          gate.opened = true;
+          state.openedGates++;
+          updateHud();
+
+          // Qapının açılma animasiyasını oynadırıq və sonra yox edirik
+          const gateNode = document.getElementById(`gate-${gate.id}`);
+          SoundEngine.gateOpen();
+          showStatusNote(`${gate.roman} qapı açıldı!`);
+
+          if (gateNode) {
+            gateNode.classList.add('gate-opening');
+            setTimeout(() => {
+              gateNode.remove();
+            }, 520);
+          }
+
+          // Oyunçu qapıdan keçib növbəti otağa addım atır
+          setTimeout(() => {
+            movePlayerTo(targetPos.r, targetPos.c);
+          }, 220);
+        } else {
+          if (state.torches <= 0) {
+            finishGame(false);
+          } else {
+            showStatusNote('Qapı bağlı qaldı. Növbəti yaxınlaşmada yeni sual çıxacaq.');
+          }
+        }
+      }
+
+      /* =========================================================================
+         BÖLMƏ 12: NƏTİCƏ EKRANI (QALİBİYYƏT / MƏĞLUBİYYƏT)
+         ========================================================================= */
+      function finishGame(isWin) {
+        stopTimer();
+        state.modal.active = false;
+        el.letterModal.classList.add('hidden');
+
+        if (isWin) {
+          SoundEngine.victory();
+          el.resultTitle.textContent = 'Qala fəth edildi!';
+          el.resultTitle.className = 'result-title win';
+          el.resultSubtitle.textContent = 'Bütün möhürlü qapıları aşaraq qədim qaladan uğurla çıxdınız.';
+          el.resultEmblem.innerHTML = `
+            <svg width="86" height="86" viewBox="0 0 90 90" fill="none">
+              <circle cx="45" cy="45" r="40" fill="rgba(201,155,60,0.12)" stroke="#E6C36E" stroke-width="2"/>
+              <rect x="28" y="28" width="34" height="34" fill="#C99B3C"/>
+              <rect x="28" y="28" width="34" height="34" fill="#E6C36E" transform="rotate(45 45 45)"/>
+              <circle cx="45" cy="45" r="10" fill="#231C10"/>
+              <circle cx="45" cy="45" r="5" fill="#FFF2B8"/>
+            </svg>`;
+        } else {
+          SoundEngine.defeat();
+          el.resultTitle.textContent = 'Məşəllər söndü';
+          el.resultTitle.className = 'result-title lose';
+          el.resultSubtitle.textContent = 'Qaranlıq qalanı bürüdü. Yenidən cəhd edib qapıları fəth edə bilərsiniz.';
+          el.resultEmblem.innerHTML = `
+            <svg width="86" height="86" viewBox="0 0 90 90" fill="none">
+              <circle cx="45" cy="45" r="40" fill="rgba(159,31,36,0.12)" stroke="#A84A4E" stroke-width="2"/>
+              <path d="M43 32 C41 26 48 24 46 18" stroke="#9B9286" stroke-width="2.4" stroke-linecap="round"/>
+              <rect x="36" y="42" width="18" height="6" rx="2" fill="#84796B"/>
+              <path d="M40 48 H50 L48 70 H42 Z" fill="#5D5348"/>
+            </svg>`;
+        }
+
+        el.statTime.textContent = formatTime(state.elapsedSeconds);
+        el.statGates.textContent = `${state.openedGates}/${TOTAL_GATES}`;
+        el.statCorrect.textContent = String(state.correctCount);
+        el.statWrong.textContent = String(state.wrongCount);
+
+        showScreen('result');
+        setTimeout(() => el.replayBtn.focus(), 60);
+      }
+
+      function returnToStart() {
+        stopTimer();
+        state.modal.active = false;
+        el.letterModal.classList.add('hidden');
+        renderSubjectSelector();
+        showScreen('start');
+      }
+
+      /* =========================================================================
+         BÖLMƏ 13: HADİSƏ DİNLƏYİCİLƏRİ (KLAVİATURA, D-PAD, SÜRÜŞDÜRMƏ)
+         ========================================================================= */
+      // Başlanğıc və nəticə düymələri
+      el.startBtn.addEventListener('click', startGame);
+      el.replayBtn.addEventListener('click', returnToStart);
+      el.quitBtn.addEventListener('click', returnToStart);
+
+      // Möhür və davam et düymələri
+      el.waxSealBtn.addEventListener('click', crackSealAndShowQuestion);
+      el.continueBtn.addEventListener('click', closeLetterAndContinue);
+
+      // Səs aç/bağla düyməsi
+      el.muteBtn.addEventListener('click', () => {
+        const nextMuted = !SoundEngine.isMuted();
+        SoundEngine.setMuted(nextMuted);
+        el.muteBtn.setAttribute('aria-pressed', String(nextMuted));
+        el.muteIconOn.classList.toggle('hidden', nextMuted);
+        el.muteIconOff.classList.toggle('hidden', !nextMuted);
+        el.muteLabel.textContent = nextMuted ? 'Səssiz' : 'Səs';
+      });
+
+      // Ekrandakı D-pad yön düymələri
+      document.querySelectorAll('.dpad-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          attemptMove(btn.dataset.dir);
+        });
+      });
+
+      // Klaviatura idarəetməsi: Oxlar, WASD, həmçinin sual pəncərəsində A/B/C/D və Enter/Space
+      window.addEventListener('keydown', (e) => {
+        // Məktub modalı açıqdırsa proyektor klaviatura qısayolları işləsin
+        if (state.modal.active) {
+          if (state.modal.stage === 'sealed' && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            crackSealAndShowQuestion();
+            return;
+          }
+          if (state.modal.stage === 'question') {
+            const codeMap = {
+              KeyA: 0,
+              KeyB: 1,
+              KeyC: 2,
+              KeyD: 3,
+              Digit1: 0,
+              Digit2: 1,
+              Digit3: 2,
+              Digit4: 3
+            };
+            const key = e.key.toLowerCase();
+            const keyMap = { a: 0, b: 1, c: 2, d: 3, '1': 0, '2': 1, '3': 2, '4': 3 };
+            if (e.code in codeMap) {
+              e.preventDefault();
+              handleAnswer(codeMap[e.code]);
+            } else if (key in keyMap) {
+              e.preventDefault();
+              handleAnswer(keyMap[key]);
+            }
+            return;
+          }
+          if (state.modal.stage === 'feedback' && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            closeLetterAndContinue();
+            return;
+          }
+          return;
+        }
+
+        if (state.screen !== 'playing') return;
+
+        const codeDirMap = {
+          ArrowUp: 'top',
+          KeyW: 'top',
+          ArrowDown: 'bottom',
+          KeyS: 'bottom',
+          ArrowLeft: 'left',
+          KeyA: 'left',
+          ArrowRight: 'right',
+          KeyD: 'right'
+        };
+
+        if (e.code in codeDirMap) {
+          e.preventDefault();
+          attemptMove(codeDirMap[e.code]);
+        }
+      });
+
+      // Sensor ekranda sürüşdürmə (Touch Swipe) dəstəyi
+      let touchStartX = 0;
+      let touchStartY = 0;
+      const SWIPE_THRESHOLD = 28;
+
+      el.mazeFrame.addEventListener(
+        'touchstart',
+        (e) => {
+          if (e.touches.length !== 1) return;
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        },
+        { passive: true }
+      );
+
+      el.mazeFrame.addEventListener(
+        'touchend',
+        (e) => {
+          if (e.changedTouches.length !== 1) return;
+          const dx = e.changedTouches[0].clientX - touchStartX;
+          const dy = e.changedTouches[0].clientY - touchStartY;
+          if (Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) return;
+
+          if (Math.abs(dx) > Math.abs(dy)) {
+            attemptMove(dx > 0 ? 'right' : 'left');
+          } else {
+            attemptMove(dy > 0 ? 'bottom' : 'top');
+          }
+        },
+        { passive: true }
+      );
+
+      /* =========================================================================
+         BÖLMƏ 14: İLKİN İŞƏSALMA
+         ========================================================================= */
+      renderSubjectSelector();
+    </script>
+  </body>
+</html>

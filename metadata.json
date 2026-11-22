@@ -1,0 +1,6 @@
+{
+  "name": "Qala Qapıları",
+  "description": "Orta əsr Azərbaycan qala memarlığından ilhamlanmış, müəllimlər üçün interaktiv labirint və bilik oyunu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
